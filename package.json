@@ -1,0 +1,32 @@
+{
+  "name": "wedding-albums",
+  "version": "0.1.0",
+  "private": true,
+  "homepage": "https://hagemt.github.io/wedding-albums",
+  "dependencies": {
+    "prop-types": "15.5.10",
+    "react": "15.6.1",
+    "react-dom": "15.6.1",
+    "react-scripts": "1.0.13"
+  },
+  "devDependencies": {
+    "eslint": "4.6.1",
+    "eslint-plugin-import": "2.7.0",
+    "eslint-plugin-mocha": "4.11.0",
+    "eslint-plugin-react": "7.3.0",
+    "gh-pages": "1.0.0",
+    "serve": "6.0.6"
+  },
+  "scripts": {
+    "build": "react-scripts build",
+    "coverage": "npm test -- --coverage",
+    "deploy": "gh-pages -d build",
+    "eslint": "eslint .eslintrc.js src",
+    "prebuild": "npm run coverage",
+    "predeploy": "npm run build",
+    "pretest": "npm run eslint",
+    "start": "react-scripts start",
+    "serve": "serve -d build",
+    "test": "react-scripts test --env=jsdom"
+  }
+}
