@@ -4,6 +4,12 @@
   "private": true,
   "homepage": "https://hagemt.github.io/wedding-albums",
   "dependencies": {
+    "bunyan": "1.8.12",
+    "ioredis": "3.1.4",
+    "koa": "2.3.0",
+    "koa-helmet": "3.2.0",
+    "koa-router": "7.2.1",
+    "lodash": "4.17.4",
     "prop-types": "15.5.10",
     "react": "15.6.1",
     "react-dom": "15.6.1",
@@ -21,12 +27,13 @@
     "build": "react-scripts build",
     "coverage": "npm test -- --coverage",
     "deploy": "gh-pages -d build",
-    "eslint": "eslint .eslintrc.js src",
+    "eslint": "eslint .eslintrc.js server src",
     "prebuild": "npm run coverage",
     "predeploy": "npm run build",
     "pretest": "npm run eslint",
     "start": "react-scripts start",
     "serve": "serve -d build",
+    "server": "node --inspect server | bunyan",
     "test": "react-scripts test --env=jsdom"
   }
 }
