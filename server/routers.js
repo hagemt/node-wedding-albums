@@ -1,6 +1,6 @@
 /* eslint-env es6, node */
 const KoaRouter = require('koa-router')
-const { zipObject } = require('lodash')
+const _ = require('lodash')
 
 const { getStorage } = require('./providers.js')
 
@@ -13,6 +13,9 @@ const keyPersonFavorites = ip => `person:${ip}:favorites`
 
 const IMAGES = new Set(Array.from({ length: 1170 }, (unused, index) => String(index + 1))) // [1,...n]
 const getImages = (...args) => new Set(getImage(...args).split(',').filter(image => IMAGES.has(image)))
+
+const sortedNumbers = string => Array.from(string, Number).sort((left, right) => (left - right))
+const filterNumbers = set => all => sortedNumbers(all.filter(one => set.size === 0 || set.has(one)))
 
 const throwErrors = (response) => {
 	const results = [] // returned in order
@@ -39,7 +42,7 @@ const getFavoriteImages = async (storage, people) => {
 	return throwErrors(await storage.multi(commands).exec())
 }
 
-const markFavoriteImages = async (storage, state, person, images) => {
+const markFavorites = async (storage, state, person, images) => {
 	const commands = [] // to n + 1 sets:
 	const command = state ? 'sadd' : 'srem'
 	commands.push([command, keyPersonFavorites(person), ...images])
@@ -56,9 +59,11 @@ class FavoritesRouter extends KoaRouter {
 		this.get('/', async ({ query, state, request, response }, next) => {
 			const images = getImages(query) // whitelist'd on IMAGES
 			const person = state.person = getPerson(request) // IP
+			const people = await this.getFavoriteImages(person)
+			const counts = await this.getFavoriteCounts(...images)
 			response.body = {
-				all: await this.getFavoriteCounts(...images),
-				yours: await this.getFavoriteImages(person),
+				images: _.mapValues(counts, string => Number(string)),
+				people: _.mapValues(people, filterNumbers(images)),
 			}
 			await next()
 		})
@@ -77,19 +82,20 @@ class FavoritesRouter extends KoaRouter {
 		this.post('/', async ({ query, state, request, response }, next) => {
 			const images = getImages(query) // whitelist'd on IMAGES
 			const person = state.person = getPerson(request) // IP
-			await markFavoriteImages(this.storage, true, person, images)
+			await markFavorites(this.storage, true, person, images)
+			response.set('Content-Type', 'application/json')
 			response.status = 200
 			await next()
 		})
 		this.delete('/', async ({ query, state, request, response }, next) => {
 			const images = getImages(query) // whitelist'd on IMAGES
 			const person = state.person = getPerson(request) // IP
-			await markFavoriteImages(this.storage, false, person, images)
+			await markFavorites(this.storage, false, person, images)
+			response.set('Content-Type', 'application/json')
 			response.status = 200
 			await next()
 		})
-		this.storage = getStorage()
-		Object.freeze(this)
+		Object.freeze(Object.assign(this, { storage: getStorage() }))
 	}
 
 	async getImages () {
@@ -107,7 +113,7 @@ class FavoritesRouter extends KoaRouter {
 			return this.getFavoriteCounts(...all)
 		}
 		return getFavoriteCounts(this.storage, images)
-			.then(numbers => zipObject(images, numbers))
+			.then(counts => _.zipObject(images, counts))
 	}
 
 	async getFavoriteImages (...people) {
@@ -116,7 +122,7 @@ class FavoritesRouter extends KoaRouter {
 			return this.getFavoriteImages(...all)
 		}
 		return getFavoriteImages(this.storage, people)
-			.then(arrays => zipObject(people, arrays))
+			.then(images => _.zipObject(people, images))
 	}
 
 }

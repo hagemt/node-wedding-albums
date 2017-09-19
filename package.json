@@ -5,10 +5,12 @@
   "homepage": "https://hagemt.github.io/wedding-albums",
   "dependencies": {
     "bunyan": "1.8.12",
+    "immutable": "3.8.1",
     "ioredis": "3.1.4",
     "koa": "2.3.0",
     "koa-helmet": "3.2.0",
     "koa-router": "7.2.1",
+    "koa-static": "4.0.1",
     "lodash": "4.17.4",
     "prop-types": "15.5.10",
     "react": "15.6.1",
@@ -21,7 +23,13 @@
     "eslint-plugin-mocha": "4.11.0",
     "eslint-plugin-react": "7.3.0",
     "gh-pages": "1.0.0",
-    "serve": "6.0.6"
+    "ioredis-mock": "2.4.0",
+    "mocha": "3.5.3",
+    "nyc": "11.2.1",
+    "serve": "6.0.6",
+    "sinon": "3.2.1",
+    "supertest": "3.0.0",
+    "testdouble": "3.2.6"
   },
   "scripts": {
     "build": "react-scripts build",
@@ -34,6 +42,8 @@
     "start": "react-scripts start",
     "serve": "serve -d build",
     "server": "node --inspect server | bunyan",
-    "test": "react-scripts test --env=jsdom"
+    "test": "react-scripts test --env=jsdom",
+    "test:server": "nyc mocha test/server.js",
+    "posttest:server": "npm run eslint"
   }
 }
