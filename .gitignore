@@ -1,6 +1,6 @@
-/.nyc_output
 /build
 /coverage
+/logs
 /node_modules
-/src/images
-/public/albums
+/.nyc_output
+/src
