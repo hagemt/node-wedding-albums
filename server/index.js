@@ -8,7 +8,7 @@ const helmet = require('koa-helmet')
 const serve = require('koa-static')
 
 const { getLogger } = require('./providers.js')
-const { FavoritesRouter } = require('./routers.js')
+const { createRouter } = require('./routers.js')
 
 const PROJECT_ROOT = path.resolve(__dirname, '..')
 const PUBLIC_FOLDER = path.resolve(PROJECT_ROOT, 'public')
@@ -28,7 +28,9 @@ const createService = () => {
 	application.use(cors())
 	application.use(helmet())
 	const routers = [
-		new FavoritesRouter(),
+		//createRouter('favorites'),
+		createRouter('laughs'),
+		createRouter('loves'),
 	]
 	for (const router of routers) {
 		application.use(router.allowedMethods())
