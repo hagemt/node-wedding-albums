@@ -7,16 +7,23 @@ import Image from './Image.js'
 
 const Album = ({ favorites, title, url }) => {
 	const images = Object.keys(favorites).map((key) => {
-		const { countFavorites, isFavorite } = Object(favorites[key])
+		const { countLaughs, countLoves, isLaughs, isLoves } = Object(favorites[key])
 		return (
 			<ReactCSSTransitionGroup
 				key={key}
 				transitionAppear={true}
+				transitionAppearTimeout={2000}
 				transitionEnter={false}
 				transitionLeave={false}
 				transitionName="image"
-				>
-				<Image countFavorites={countFavorites} isFavorite={isFavorite} number={Number(key)} url={url} />
+			>
+				<Image
+					countLaughs={countLaughs}
+					countLoves={countLoves}
+					isLaughs={isLaughs}
+					isLoves={isLoves}
+					number={Number(key)}
+					url={url} />
 			</ReactCSSTransitionGroup>
 		)
 	})
@@ -29,8 +36,7 @@ const Album = ({ favorites, title, url }) => {
 }
 
 Album.propTypes = {
-	favorites: Types.object, // Immutable.Map
-	numbers: Types.arrayOf(Types.number),
+	favorites: Types.object,
 	title: Types.string,
 	url: Types.string,
 }
