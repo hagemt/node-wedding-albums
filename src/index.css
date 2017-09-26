@@ -39,6 +39,11 @@ body {
 	width: 250px;
 }
 
+.image-block > button {
+	display: inline;
+	margin: 0.2rem;
+}
+
 .image-appear {
 	opacity: 0.01;
 }
