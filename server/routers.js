@@ -52,10 +52,14 @@ const markFavorites = async (storage, state, person, images) => {
 	return throwErrors(await storage.multi(commands).exec())
 }
 
+const ROUTER_DEFAULTS = Object.freeze({
+	prefix: '/favorites',
+})
+
 class FavoritesRouter extends KoaRouter {
 
-	constructor () {
-		super({ prefix: '/favorites' })
+	constructor ({ prefix } = ROUTER_DEFAULTS) {
+		super({ prefix })
 		this.get('/', async ({ query, state, request, response }, next) => {
 			const images = getImages(query) // whitelist'd on IMAGES
 			const person = state.person = getPerson(request) // IP

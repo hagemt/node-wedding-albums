@@ -1,14 +1,17 @@
 /* eslint-env es6, node */
+const path = require('path')
 const HTTP = require('http')
 
 const Application = require('koa')
+const cors = require('kcors')
 const helmet = require('koa-helmet')
 const serve = require('koa-static')
 
 const { getLogger } = require('./providers.js')
 const { FavoritesRouter } = require('./routers.js')
 
-const PUBLIC_FOLDER = require('path').resolve(__dirname, '..', 'public')
+const PROJECT_ROOT = path.resolve(__dirname, '..')
+const PUBLIC_FOLDER = path.resolve(PROJECT_ROOT, 'public')
 
 const createService = () => {
 	const log = getLogger().child({
@@ -22,6 +25,7 @@ const createService = () => {
 		const ms = (s * 1e3 + ns / 1e6).toFixed(3)
 		log.info({ ms, req: request, res: response }, 'handled')
 	})
+	application.use(cors())
 	application.use(helmet())
 	const routers = [
 		new FavoritesRouter(),
@@ -63,7 +67,7 @@ if (!module.parent) {
 			for (const signal of ['SIGHUP', 'SIGINT', 'SIGTERM']) {
 				process.once(signal, () => {
 					service.log.warn({ signal }, 'will terminate')
-					process.exit()
+					process.kill(process.pid, signal)
 				})
 			}
 		})
