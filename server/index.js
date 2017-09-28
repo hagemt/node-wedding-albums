@@ -64,7 +64,7 @@ module.exports = {
 }
 
 if (!module.parent) {
-	const port = process.env.PORT || 8000
+	const port = process.env.PORT || 9000
 	const service = createService() // has log
 	process.on('unhandledRejection', (reason) => {
 		service.log.warn(reason, 'unhandled rejection')
