@@ -38,6 +38,9 @@ const createService = () => {
 	}
 	application.use(serve(PUBLIC_FOLDER))
 	const server = HTTP.createServer()
+	server.on('error', (error) => {
+		log.warn(error, 'internal failure')
+	})
 	server.on('request', application.callback())
 	return Object.defineProperties(server, {
 		log: {
@@ -62,7 +65,10 @@ module.exports = {
 
 if (!module.parent) {
 	const port = process.env.PORT || 8000
-	const service = createService()
+	const service = createService() // has log
+	process.on('unhandledRejection', (reason) => {
+		service.log.warn(reason, 'unhandled rejection')
+	})
 	startService(service, port)
 		.then(() => {
 			service.log.info({ port }, 'started')
