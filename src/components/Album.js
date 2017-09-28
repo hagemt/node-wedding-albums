@@ -15,7 +15,7 @@ const Album = ({ favorites, title, url }) => {
 				transitionAppearTimeout={2000}
 				transitionEnter={false}
 				transitionLeave={false}
-				transitionName="image"
+				transitionName='image'
 			>
 				<Image
 					countLaughs={countLaughs}
@@ -27,10 +27,16 @@ const Album = ({ favorites, title, url }) => {
 			</ReactCSSTransitionGroup>
 		)
 	})
+	const classes = ['album']
+	if (images.length === 0) {
+		classes.push('d-none')
+	}
 	return (
-		<div className="album">
-			<h1 className="album-head">{title}</h1>
-			<div className="album-body">{images}</div>
+		<div className={classes.join(' ')}>
+			<div className='album-head at-field'>
+				<h2 className='text-center'>{title}</h2>
+			</div>
+			<div className='album-body'>{images}</div>
 		</div>
 	)
 }

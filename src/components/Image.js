@@ -68,14 +68,14 @@ class Image extends React.Component {
 		const onClickLaughs = () => this.toggleLaughs(laughsLink)
 		const onClickLoves = () => this.toggleLoves(lovesLink)
 		const { countLaughs, countLoves, isLaughs, isLoves, isLoading } = Object(this.state)
-		const buttonTextLaughs = `${isLaughs ? '🤔' : '😂' } (${countLaughs})`
-		const buttonTextLoves = `${isLoves ? '💔' : '💟'} (${countLoves})`
+		const buttonTextLaughs = `${isLaughs ? '🤔' : '🤣' } (${countLaughs} LOL)`
+		const buttonTextLoves = `${isLoves ? '💔' : '💟'} (${countLoves} Like)`
 		return (
-			<Card className='image'>
-				<a className='image-link' href={imageLink}>
+			<Card className='at-field image-card text-center'>
+				<a href={imageLink} target='_blank'>
 					<CardImg alt={padded} className='card-img-top circle' src={thumbnailLink} title={hoverText} />
 				</a>
-				<CardBlock className='image-block'>
+				<CardBlock className='btn-group'>
 					<Button disabled={isLoading} onClick={onClickLaughs}>{buttonTextLaughs}</Button>
 					<Button disabled={isLoading} onClick={onClickLoves}>{buttonTextLoves}</Button>
 				</CardBlock>
