@@ -13,45 +13,54 @@ class Image extends React.Component {
 		this.state = {
 			countLaughs: props.countLaughs,
 			countLoves: props.countLoves,
-			isLaughs: props.isLaughs,
-			isLoves: props.isLoves,
-			isLoading: false,
+			isLoading: false, // === disabled
+			lastError: null, // show message?
+			userLaughs: props.userLaughs,
+			userLoves: props.userLoves,
 		}
 	}
 
-	async toggleLaughs (href) {
-		const { isLaughs, isLoading } = Object(this.state)
-		if (isLoading) return // re-entry is not allowed
+	async toggleLaughs (url) {
+		// any re-entry is not allowed:
+		if (this.state.isLoading) return
 		try {
-			this.setState(() => ({ isLoading: true }))
-			const method = isLaughs ? 'DELETE' : 'POST'
-			await window.fetch(href, { method, mode: 'cors' })
-			this.setState(({ countLaughs, isLaughs }) => {
-				const updated = countLaughs + (isLaughs ? -1 : +1)
-				return { countLaughs: updated, isLaughs: !isLaughs }
+			this.setState({ isLoading: true })
+			await window.fetch(url, {
+				method: this.state.userLaughs ? 'DELETE' : 'POST',
+				mode: 'cors',
+			})
+			this.setState(({ countLaughs, userLaughs }) => {
+				const updated = countLaughs + (userLaughs ? -1 : +1)
+				return { countLaughs: updated, userLaughs: !userLaughs }
 			})
 		} catch (error) {
-			console.error(error) // eslint-disable-line no-console
+			this.setState({ lastError: error })
+			// eslint-disable-next-line no-console
+			console.error(error)
 		} finally {
-			this.setState(() => ({ isLoading: false }))
+			this.setState({ isLoading: false })
 		}
 	}
 
-	async toggleLoves (href) {
-		const { isLoves, isLoading } = Object(this.state)
-		if (isLoading) return // re-entry is not allowed
+	async toggleLoves (url) {
+		// any re-entry is not allowed:
+		if (this.state.isLoading) return
 		try {
-			this.setState(() => ({ isLoading: true }))
-			const method = isLoves ? 'DELETE' : 'POST'
-			await window.fetch(href, { method, mode: 'cors' })
-			this.setState(({ countLoves, isLoves }) => {
-				const updated = countLoves + (isLoves ? -1 : +1)
-				return { countLoves: updated, isLoves: !isLoves }
+			this.setState({ isLoading: true })
+			await window.fetch(url, {
+				method: this.state.userLoves ? 'DELETE' : 'POST',
+				mode: 'cors',
+			})
+			this.setState(({ countLoves, userLoves }) => {
+				const updated = countLoves + (userLoves ? -1 : +1)
+				return { countLoves: updated, userLoves: !userLoves }
 			})
 		} catch (error) {
-			console.error(error) // eslint-disable-line no-console
+			this.setState({ lastError: error })
+			// eslint-disable-next-line no-console
+			console.error(error)
 		} finally {
-			this.setState(() => ({ isLoading: false }))
+			this.setState({ isLoading: false })
 		}
 	}
 
@@ -59,25 +68,25 @@ class Image extends React.Component {
 		const { number, url } = Object(this.props)
 		const padded = String(number).padStart(4, '0')
 		const hoverText = `Image #${padded} (${url})`
-		const imageLink = `${url}/fullsize/${padded}.jpg`
-		const thumbnailLink = `${url}/thumbnail/${padded}.png`
-		const { host, protocol } = URL.parse(url) // may POST/DELETE to:
-		const laughsLink = `${protocol}//${host}/laughs?id=${number}`
-		const lovesLink = `${protocol}//${host}/loves?id=${number}`
+		const imageURL = `${url}/fullsize/${padded}.jpg`
+		const thumbnailURL = `${url}/thumbnail/${padded}.png`
+		const { host, protocol } = URL.parse(url) // DELETE/POST url:
+		const laughsURL = `${protocol}//${host}/laughs?id=${number}`
+		const lovesURL = `${protocol}//${host}/loves?id=${number}`
 		// all lines above above could/should be removed from render
-		const onClickLaughs = () => this.toggleLaughs(laughsLink)
-		const onClickLoves = () => this.toggleLoves(lovesLink)
-		const { countLaughs, countLoves, isLaughs, isLoves, isLoading } = Object(this.state)
-		const buttonTextLaughs = `${isLaughs ? '🤔' : '🤣' } (${countLaughs} LOL)`
-		const buttonTextLoves = `${isLoves ? '💔' : '💟'} (${countLoves} Like)`
+		const onClickLaughs = () => this.toggleLaughs(laughsURL)
+		const onClickLoves = () => this.toggleLoves(lovesURL)
+		const { countLaughs, countLoves, isLoading, userLaughs, userLoves } = Object(this.state)
+		const buttonTextLaughs = `${userLaughs ? '🔻' : '🔺' } (${countLaughs} LOL)`
+		const buttonTextLoves = `${userLoves ? '🔻' : '🔺'} (${countLoves} Like)`
 		return (
 			<Card className='at-field image-card text-center'>
-				<a href={imageLink} target='_blank'>
-					<CardImg alt={padded} className='card-img-top circle' src={thumbnailLink} title={hoverText} />
+				<a href={imageURL} target='_blank'>
+					<CardImg alt={padded} className='card-img-top circle' src={thumbnailURL} title={hoverText} />
 				</a>
 				<CardBlock className='btn-group'>
-					<Button disabled={isLoading} onClick={onClickLaughs}>{buttonTextLaughs}</Button>
 					<Button disabled={isLoading} onClick={onClickLoves}>{buttonTextLoves}</Button>
+					<Button disabled={isLoading} onClick={onClickLaughs}>{buttonTextLaughs}</Button>
 				</CardBlock>
 			</Card>
 		)
@@ -86,12 +95,12 @@ class Image extends React.Component {
 }
 
 Image.propTypes = {
-	countLaughs: Types.number,
-	countLoves: Types.number,
-	isLaughs: Types.bool,
-	isLoves: Types.bool,
-	number: Types.number,
-	url: Types.string,
+	countLaughs: Types.number.isRequired,
+	countLoves: Types.number.isRequired,
+	number: Types.number.isRequired,
+	url: Types.string.isRequired,
+	userLaughs: Types.bool.isRequired,
+	userLoves: Types.bool.isRequired,
 }
 
 export default Image

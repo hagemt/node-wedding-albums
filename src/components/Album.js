@@ -6,23 +6,21 @@ import ReactCSSTransitionGroup from 'react-addons-css-transition-group'
 import Image from './Image.js'
 
 const Album = ({ favorites, title, url }) => {
-	const images = Object.keys(favorites).map((key) => {
-		const { countLaughs, countLoves, isLaughs, isLoves } = Object(favorites[key])
+	const images = Array.from(favorites, (favorite) => {
 		return (
 			<ReactCSSTransitionGroup
-				key={key}
 				transitionAppear={true}
 				transitionAppearTimeout={2000}
 				transitionEnter={false}
 				transitionLeave={false}
 				transitionName='image'
-			>
+				key={favorite.number} >
 				<Image
-					countLaughs={countLaughs}
-					countLoves={countLoves}
-					isLaughs={isLaughs}
-					isLoves={isLoves}
-					number={Number(key)}
+					countLaughs={favorite.countLaughs}
+					countLoves={favorite.countLoves}
+					number={favorite.number}
+					userLaughs={favorite.userLaughs}
+					userLoves={favorite.userLoves}
 					url={url} />
 			</ReactCSSTransitionGroup>
 		)
@@ -41,10 +39,18 @@ const Album = ({ favorites, title, url }) => {
 	)
 }
 
+const favorite = Types.shape({
+	countLaughs: Types.number.isRequired,
+	countLoves: Types.number.isRequired,
+	number: Types.number.isRequired,
+	userLaughs: Types.bool.isRequired,
+	userLoves: Types.bool.isRequired,
+})
+
 Album.propTypes = {
-	favorites: Types.object,
-	title: Types.string,
-	url: Types.string,
+	favorites: Types.arrayOf(favorite).isRequired,
+	title: Types.string.isRequired,
+	url: Types.string.isRequired,
 }
 
 export default Album
