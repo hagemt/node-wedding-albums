@@ -21,16 +21,14 @@ import {
 
 import Album from './Album.js'
 
-const album = Object.freeze({
-	title: '2017-08-20',
-	total: 1170,
-})
+// constants (could be loaded from env)
+const BASE_URL = 'http://localhost:9000'
+const ITEMS_PER_PAGE = 65 // small product of factors:
+const ALBUM_ITEMS = 1170 // factor 1170: 2 3 3 5 13
+const ALBUM_TITLE = '2017-08-20' // album directory:
+const ALBUM_URL = `${BASE_URL}/images/${ALBUM_TITLE}`
 
-const ITEMS_PER_PAGE = 65 // product of factors of album.total
-const BASE_URL = 'http://localhost:9000' // switch to CDN
-const ALBUM_URL = `${BASE_URL}/albums/${album.title}`
-
-const BY_SITE = (left, right) => {
+const BY_SITE_FAVORITES = (left, right) => {
 	const sameLoves = left.countLoves === right.countLoves
 	const sameLaughs = left.countLaughs === right.countLaughs
 	if (!sameLoves) return right.countLoves - left.countLoves
@@ -38,7 +36,7 @@ const BY_SITE = (left, right) => {
 	return left.number - right.number // tie breaker: number
 }
 
-const BY_USER = (left, right) => {
+const BY_USER_FAVORITES = (left, right) => {
 	const bothLoves = left.userLoves && right.userLoves
 	const bothLaughs = left.userLaughs && right.userLaughs
 	const sameLoves = left.countLoves === right.countLoves
@@ -50,8 +48,8 @@ const BY_USER = (left, right) => {
 	return left.number - right.number // tie breaker: number
 }
 
-const BY_NUMBER = ({ number: left }, { number: right }) => (left - right) // default
-const favoritesArray = ({ images1, images2, people1, people2 }, order = BY_NUMBER) => {
+const BY_IMAGE_NUMBER = ({ number: left }, { number: right }) => (left - right) // default
+const favoritesArray = ({ images1, images2, people1, people2 }, order = BY_IMAGE_NUMBER) => {
 	const favorites = new Map() // FIXME (hagemt): this is so awful
 	const numbers1 = new Set(people1[Object.keys(people1)[0]])
 	const numbers2 = new Set(people2[Object.keys(people2)[0]])
@@ -72,13 +70,13 @@ const favoritesArray = ({ images1, images2, people1, people2 }, order = BY_NUMBE
 	return Object.freeze(Array.from(favorites.values(), value => Object.freeze(value)).sort(order))
 }
 
-const inRange = (index, total = album.total) => {
-	return !(index < 0) && (index < total)
+const inRange = (index, items = ALBUM_ITEMS) => {
+	return !(index < 0) && (index < items)
 }
 
 // hack to allow ?page=N for N \in [1,65] to move the offset to a correct position
 const START_QUERY = Number(querystring.decode(window.location.search)['?page']) || 1
-const START_PAGE = inRange(START_QUERY, album.total / ITEMS_PER_PAGE + 1) ? START_QUERY : 1
+const START_PAGE = inRange(START_QUERY, ALBUM_ITEMS / ITEMS_PER_PAGE + 1) ? START_QUERY : 1
 window.history.pushState(null, null, window.location.origin) // for ditching query string
 
 const delayMS = (millis = 0) => new Promise(resolve => window.setTimeout(resolve, millis))
@@ -87,7 +85,7 @@ const fetchAll = (all, options) => Promise.all(all.map(one => window.fetch(one, 
 // eslint-disable-next-line react/prop-types
 const Navigation = ({ children, refresh }) => (
 	<Navbar color='faded' light toggleable>
-		<NavbarBrand href='#' id='instructions' onClick={refresh}>All Photos <Badge>{album.total}</Badge></NavbarBrand>
+		<NavbarBrand href='#' id='instructions' onClick={refresh}>All Photos <Badge>{ALBUM_ITEMS}</Badge></NavbarBrand>
 		<UncontrolledTooltip target='instructions'>
 			Click thumbnails for full-size download/view; click the buttons if you laugh, or if you see something you love.
 		</UncontrolledTooltip>
@@ -132,13 +130,16 @@ class Pagination extends React.Component {
 class Root extends React.Component {
 
 	constructor (...args) {
-		super(...args)
+		super(...args) // Root takes no props, but may have children
+		const INITIAL_OFFSET = ITEMS_PER_PAGE * (START_PAGE - 1)
+		const album = Object.freeze({
+			favorites: Object.freeze([]),
+			length: ITEMS_PER_PAGE,
+			offset: INITIAL_OFFSET,
+		})
 		this.state = {
-			albums: Immutable.Map.of(album, {
-				favorites: Object.freeze([]), // only album
-				length: ITEMS_PER_PAGE, // small constant?
-				offset: ITEMS_PER_PAGE * (START_PAGE - 1),
-			}),
+			// only one album, for the moment:
+			albums: Immutable.Map.of(null, album),
 			favorites: null, // only for site/user
 			isLoading: false, // disables buttons
 			lastError: null, // logged to console
@@ -146,7 +147,8 @@ class Root extends React.Component {
 	}
 
 	componentWillMount () {
-		this.setPage(this.state.albums.get(album))
+		// will trigger initial favorites fetch:
+		this.switchPage(this.state.albums.get(null))
 	}
 
 	async fetchFavorites ({ numbers }) {
@@ -165,40 +167,32 @@ class Root extends React.Component {
 			this.setState({ lastError: error })
 			// eslint-disable-next-line no-console
 			console.error(error)
+			throw error
 		} finally {
 			this.setState({ isLoading: false })
 		}
-		/*
-		// only for testing, but
-		// doesn't seem to work
-		// (1 person/picture)
-		return Object.freeze({
-			images1: { 1: 1 },
-			images2: { 1: 1 },
-			people1: { 1: [1] },
-			people2: { 1: [1] },
-		})
-		*/
 	}
 
-	async setPage ({ offset, length }) {
-		//await this.switchView() // respond to anchor
+	async switchPage ({ offset, length }) {
 		if (!(length > 0) || !inRange(offset) || !inRange(offset + length - 1)) return
 		const numbers = Array.from({ length }, (none, index) => (offset + index + 1))
-		const favorites = favoritesArray(await this.fetchFavorites({ numbers })) // frozen
-		this.setState(({ albums }) => ({ albums: albums.set(album, { favorites, offset, length }) }))
+		const favorites = favoritesArray(await this.fetchFavorites({ numbers }))
+		this.setState(({ albums }) => ({
+			// only album needs updated metadata (Immutable.Map works well here)
+			albums: albums.set(null, Object.freeze({ favorites, offset, length })),
+		}))
 	}
 
 	async switchView () {
-		// some browsers are fast or slow
-		// the hash may be updated async
-		await delayMS(50) // dirty hack
+		// some browsers are faster/slower
+		// location.hash update may be async
+		await delayMS(50) // so, dirty hack
 		switch (window.location.hash) {
 		case '#site-favorites': {
 			const favorites = [] // filtered as follows:
 			this.setState({ favorites: Object.freeze([]), isLoading: true })
 			const all = await this.fetchFavorites({ numbers: [] })
-			for (const favorite of favoritesArray(all, BY_SITE)) {
+			for (const favorite of favoritesArray(all, BY_SITE_FAVORITES)) {
 				const { countLaughs, countLoves } = favorite // two Numbers
 				if (countLaughs > 0 || countLoves > 0) favorites.push(favorite)
 			}
@@ -209,7 +203,7 @@ class Root extends React.Component {
 			const favorites = [] // filtered as follows:
 			this.setState({ favorites: Object.freeze([]), isLoading: true })
 			const all = await this.fetchFavorites({ numbers: [] })
-			for (const favorite of favoritesArray(all, BY_USER)) {
+			for (const favorite of favoritesArray(all, BY_USER_FAVORITES)) {
 				const { userLaughs, userLoves } = favorite // two Booleans
 				if (userLaughs || userLoves) favorites.push(favorite)
 			}
@@ -222,27 +216,28 @@ class Root extends React.Component {
 	}
 
 	render () {
-		const isLoading = this.state.isLoading // prevent double-loading
-		const { favorites, length, offset } = this.state.albums.get(album)
-		const buttons = [] // built and embedded based on pseudo-route:
+		const isLoading = this.state.isLoading // prevents double-loading
+		const { favorites, length, offset } = this.state.albums.get(null)
+		const buttons = [] // built and embedded based on pseudo-route
+		// N.B. should really be refactored into another component:
 		if (this.state.favorites) {
 			buttons.push(<Button href='#' key='root-pagination' onClick={() => this.switchView()}>Return to Album View</Button>)
 		} else {
 			const page = Math.floor(offset / ITEMS_PER_PAGE) + 1 // 0 < page
-			const pages = Math.ceil(album.total / ITEMS_PER_PAGE) // page < pages
+			const pages = Math.ceil(ALBUM_ITEMS / ITEMS_PER_PAGE) // page < pages
 			buttons.push(<Pagination key='root-pagination' page={page} pages={pages} />)
 			if (inRange(offset - length)) {
-				const onClick = () => this.setPage({ length, offset: offset - length }) // move offset back
+				const onClick = () => this.switchPage({ length, offset: offset - length }) // moves offset back one page
 				buttons.unshift(<Button disabled={isLoading} key='root-pagination-left' onClick={onClick}>Previous</Button>)
 			} else {
-				const onClick = () => this.setPage({ length, offset: album.total - length }) // move offset to end
+				const onClick = () => this.switchPage({ length, offset: ALBUM_ITEMS - length }) // moves to final page
 				buttons.unshift(<Button disabled={isLoading} key='root-pagination-left' onClick={onClick}>Last</Button>)
 			}
 			if (inRange(offset + length + 1)) {
-				const onClick = () => this.setPage({ length, offset: offset + length }) // move offset forward
+				const onClick = () => this.switchPage({ length, offset: offset + length }) // moves offset up one page
 				buttons.push(<Button disabled={isLoading} key='root-pagination-right' onClick={onClick}>Next</Button>)
 			} else {
-				const onClick = () => this.setPage({ length, offset: 0 }) // reset offset to zero
+				const onClick = () => this.switchPage({ length, offset: 0 }) // move offset to initial page, instead?
 				buttons.push(<Button disabled={isLoading} key='root-pagination-right' onClick={onClick}>First</Button>)
 			}
 		}
@@ -253,16 +248,16 @@ class Root extends React.Component {
 				</Navigation>
 				{this.state.favorites
 					? (this.state.favorites.length === 0)
-						? (<Jumbotron className='at-field' fluid>{isLoading ? 'Loading...' : 'No favorites.'}</Jumbotron>)
+						? (<Jumbotron className='at-field'>{isLoading ? 'Loading...' : 'Nothing to see here.'}</Jumbotron>)
 						: (<Album favorites={this.state.favorites} title='Favorites' url={ALBUM_URL} />)
-					: (<Album favorites={favorites} title={album.title} url={ALBUM_URL} />)
+					: (<Album favorites={favorites} title={ALBUM_TITLE} url={ALBUM_URL} />)
 				}
 				<div className='at-field root-footer text-center'>
 					<span className='d-block'>Photos by <a href='http://icantakeyourpicture.com'>Mitchell Joyce</a></span>
 					<span className='d-block'>Website by <a href='https://github.com/hagemt'>Tor E Hagemann</a></span>
-					<span className='d-block'>&copy; Copyright 2017, respectively</span>
+					<span className='d-block'>&copy; Copyright 2017, respective parties</span>
 				</div>
-				<Button href='#'>Top</Button>
+				<Button href='#'>Back to Top</Button>
 			</div>
 		)
 	}
