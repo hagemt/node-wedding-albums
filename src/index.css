@@ -8,13 +8,13 @@ body,
 	text-align: center;
 }
 
-.image-appear {
+.album-image-appear {
 	opacity: 0.01;
 }
 
-.image-appear.image-appear-active {
+.album-image-appear.album-image-appear-active {
 	opacity: 1;
-	transition: opacity 0.5s ease-in;
+	transition: opacity 1s ease-in;
 }
 
 .image-card {

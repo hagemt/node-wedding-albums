@@ -13,7 +13,7 @@ const Album = ({ favorites, title, url }) => {
 				transitionAppearTimeout={2000}
 				transitionEnter={false}
 				transitionLeave={false}
-				transitionName='image'
+				transitionName='album-image'
 				key={favorite.number} >
 				<Image
 					countLaughs={favorite.countLaughs}
