@@ -14,15 +14,17 @@ const systemctl = (...args) => { // assumes Linux system by default:
 	else return output[1].toString() // stdout; N.B. output might be truncated
 }
 
-const backup = () => {
-	return redisCLI('SAVE')
+const backup = async (background = false) => {
+	await redisCLI(background ? 'BGSAVE' : 'SAVE')
+	const lastsave = await redisCLI('LASTSAVE') // UNIX time
+	return `LASTSAVE: ${new Date(lastsave * 1000).toISOString()}`
 }
 
-const restore = () => {
-	return redisCLI('LASTSAVE')
+const restore = async () => {
+	throw new Error('not implemented')
 }
 
-const start = () => {
+const start = async () => {
 	const platform = OS.platform()
 	switch (platform) {
 	case 'linux': return systemctl('start', 'redis')
@@ -30,7 +32,7 @@ const start = () => {
 	}
 }
 
-const stop = () => {
+const stop = async () => {
 	const platform = OS.platform()
 	switch (platform) {
 	case 'linux': return systemctl('stop', 'redis')
