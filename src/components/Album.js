@@ -1,20 +1,20 @@
 import React from 'react'
 import Types from 'prop-types'
 
-import ReactCSSTransitionGroup from 'react-addons-css-transition-group'
+import { CSSTransitionGroup } from 'react-transition-group'
 
 import Image from './Image.js'
 
 const Album = ({ favorites, title, url }) => {
 	const images = Array.from(favorites, (favorite) => {
 		return (
-			<ReactCSSTransitionGroup
+			<CSSTransitionGroup
 				transitionAppear={true}
 				transitionAppearTimeout={2000}
 				transitionEnter={false}
 				transitionLeave={false}
 				transitionName='album-image'
-				key={favorite.number} >
+				key={favorite.number}>
 				<Image
 					countLaughs={favorite.countLaughs}
 					countLoves={favorite.countLoves}
@@ -22,7 +22,7 @@ const Album = ({ favorites, title, url }) => {
 					userLaughs={favorite.userLaughs}
 					userLoves={favorite.userLoves}
 					url={url} />
-			</ReactCSSTransitionGroup>
+			</CSSTransitionGroup>
 		)
 	})
 	const classes = ['album']

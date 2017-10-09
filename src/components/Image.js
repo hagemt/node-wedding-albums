@@ -77,8 +77,8 @@ class Image extends React.Component {
 		const onClickLaughs = () => this.toggleLaughs(laughsURL)
 		const onClickLoves = () => this.toggleLoves(lovesURL)
 		const { countLaughs, countLoves, isLoading, userLaughs, userLoves } = Object(this.state)
-		const buttonTextLaughs = `${userLaughs ? '🔻' : '🔺' } (${countLaughs} LOL)`
-		const buttonTextLoves = `${userLoves ? '🔻' : '🔺'} (${countLoves} Like)`
+		const buttonTextLaughs = `${userLaughs ? '😺' : '😹' } (${countLaughs} LOL)`
+		const buttonTextLoves = `${userLoves ? '😺' : '😻'} (${countLoves} Like)`
 		return (
 			<Card className='at-field image-card text-center'>
 				<a href={imageURL} target='_blank'>
