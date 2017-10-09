@@ -27,11 +27,13 @@ const createService = () => {
 	})
 	application.use(cors())
 	application.use(helmet())
-	const routers = [
-		//createRouter('favorites'),
-		createRouter('laughs'),
-		createRouter('loves'),
-	]
+	const routers = []
+	if (process.env.NODE_ENV === 'test') {
+		routers.push(createRouter('favorites'))
+	} else {
+		routers.push(createRouter('laughs'))
+		routers.push(createRouter('loves'))
+	}
 	for (const router of routers) {
 		application.use(router.allowedMethods())
 		application.use(router.routes())
