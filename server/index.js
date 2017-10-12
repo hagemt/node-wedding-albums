@@ -1,4 +1,5 @@
 /* eslint-env es6, node */
+const fs = require('fs')
 const path = require('path')
 const HTTP = require('http')
 
@@ -12,6 +13,7 @@ const { createRouter } = require('./routers.js')
 
 const PROJECT_ROOT = path.resolve(__dirname, '..')
 const PUBLIC_FOLDER = path.resolve(PROJECT_ROOT, 'public')
+const SERVED_FOLDER = path.resolve(PROJECT_ROOT, 'served')
 
 const createService = () => {
 	const log = getLogger().child({
@@ -38,7 +40,14 @@ const createService = () => {
 		application.use(router.allowedMethods())
 		application.use(router.routes())
 	}
-	application.use(serve(PUBLIC_FOLDER))
+	try {
+		const isDirectory = fs.statSync(SERVED_FOLDER).isDirectory()
+		if (isDirectory) application.use(serve(SERVED_FOLDER))
+		else throw new Error(`!S_ISDIR(${SERVED_FOLDER})`)
+	} catch (e) {
+		log.warn(e, `will fallback to ${PUBLIC_FOLDER}`)
+		application.use(serve(PUBLIC_FOLDER))
+	}
 	const server = HTTP.createServer()
 	server.on('error', (error) => {
 		log.warn(error, 'internal failure')
