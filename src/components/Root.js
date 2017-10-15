@@ -1,6 +1,8 @@
 /* eslint-env browser, es6 */
 import querystring from 'querystring'
 
+import fetch from 'isomorphic-fetch'
+
 import Immutable from 'immutable'
 import React from 'react'
 
@@ -89,8 +91,8 @@ const START_QUERY = Number(querystring.decode(window.location.search)['?page']) 
 const START_PAGE = inRange(START_QUERY, ALBUM_ITEMS / ITEMS_PER_PAGE + 1) ? START_QUERY : 1
 //window.history.pushState(null, null, window.location.origin) // for ditching query string
 
-const delayMS = (millis = 0) => new Promise(resolve => window.setTimeout(resolve, millis))
-const fetchAll = (all, options) => Promise.all(all.map(one => window.fetch(one, options)))
+const delayMS = (millis = 0) => new Promise(resolve => setTimeout(resolve, millis))
+const fetchAll = (all, options) => Promise.all(all.map(one => fetch(one, options)))
 
 class Navigation extends React.Component {
 
@@ -111,23 +113,23 @@ class Navigation extends React.Component {
 		// eslint-disable-next-line react/prop-types
 		const { children, refresh } = Object(this.props)
 		return (
-			<Navbar className='at-field' color='faded' light={true} expand='md'>
+			<Navbar expand='lg' light>
 				<NavbarToggler onClick={() => this.toggle()} />
 				<NavbarBrand href='#' id='instructions' onClick={refresh}>All Photos <Badge>{ALBUM_ITEMS}</Badge></NavbarBrand>
 				<UncontrolledTooltip target='instructions'>
 					Click thumbnails for full-size download/view; click the buttons if you laugh, or if you see something you love.
 				</UncontrolledTooltip>
 				<Collapse isOpen={this.state.isOpen} navbar>
-					<Nav className='ml-auto' navbar={true}>
+					<Nav navbar>
 						<div className='text-center'>{children}</div>
 					</Nav>
-					<Nav className='ml-auto' navbar={true}>
+					<Nav navbar>
 						<NavLink href='#only-favorites' onClick={refresh}>Only Favorites <Badge>Your Picks</Badge></NavLink>
 					</Nav>
-					<Nav className='ml-auto' navbar={true}>
+					<Nav navbar>
 						<NavLink href='#only-popular' onClick={refresh}>Only Popular <Badge>With Everyone</Badge></NavLink>
 					</Nav>
-					<Nav className='ml-auto' navbar={true}>
+					<Nav navbar>
 						<NavLink href='#photo-roulette' onClick={refresh}>Photo Roulette <Badge>Random Sample</Badge></NavLink>
 					</Nav>
 				</Collapse>
@@ -228,39 +230,47 @@ class Root extends React.Component {
 		// some browsers are faster/slower
 		// location.hash update may be async
 		await delayMS(50) // so, dirty hack
-		switch (window.location.hash) {
-		case '#only-favorites': {
-			const favorites = [] // filtered as follows:
-			this.setState({ favorites: Object.freeze([]), isLoading: true })
-			const object = await this.fetchFavorites({ numbers: [] }) // all
-			for (const favorite of favoritesArray(object, BY_USER_FAVORITES)) {
-				const { userLaughs, userLoves } = favorite // two Booleans
-				if (userLaughs || userLoves) favorites.push(favorite)
+		try {
+			// TODO: use router (window hash history) instead
+			this.setState({ isLoading: true, lastError: null })
+			switch (window.location.hash) {
+			case '#only-favorites': {
+				const favorites = [] // filtered as follows:
+				this.setState({ favorites: Object.freeze([]) })
+				const object = await this.fetchFavorites({ numbers: [] }) // all
+				for (const favorite of favoritesArray(object, BY_USER_FAVORITES)) {
+					const { userLaughs, userLoves } = favorite // two Booleans
+					if (userLaughs || userLoves) favorites.push(favorite)
+				}
+				this.setState({ favorites: Object.freeze(favorites) })
+				break
 			}
-			this.setState({ favorites: Object.freeze(favorites) })
-			break
-		}
-		case '#only-popular': {
-			const favorites = [] // filtered as follows:
-			this.setState({ favorites: Object.freeze([]), isLoading: true })
-			const object = await this.fetchFavorites({ numbers: [] }) // all
-			for (const favorite of favoritesArray(object, BY_SITE_FAVORITES)) {
-				const { countLaughs, countLoves } = favorite // two Numbers
-				if (countLaughs > 0 || countLoves > 0) favorites.push(favorite)
+			case '#only-popular': {
+				const favorites = [] // filtered as follows:
+				this.setState({ favorites: Object.freeze([]) })
+				const object = await this.fetchFavorites({ numbers: [] }) // all
+				for (const favorite of favoritesArray(object, BY_SITE_FAVORITES)) {
+					const { countLaughs, countLoves } = favorite // two Numbers
+					if (countLaughs > 0 || countLoves > 0) favorites.push(favorite)
+				}
+				this.setState({ favorites: Object.freeze(favorites) })
+				break
 			}
-			this.setState({ favorites: Object.freeze(favorites) })
-			break
-		}
-		case '#photo-roulette': {
-			const favorites = [] // filtered as follows:
-			this.setState({ favorites: Object.freeze([]), isLoading: true })
-			const all = await this.fetchFavorites({ numbers: randomSample() })
-			favorites.push(...favoritesArray(all, () => Math.random() < 0.5 ? -1 : 1))
-			this.setState({ favorites: Object.freeze(favorites) })
-			break
-		}
-		default:
-			this.setState({ favorites: null })
+			case '#photo-roulette': {
+				const favorites = [] // filtered as follows:
+				this.setState({ favorites: Object.freeze([]) })
+				const all = await this.fetchFavorites({ numbers: randomSample() })
+				favorites.push(...favoritesArray(all, () => Math.random() < 0.5 ? -1 : 1))
+				this.setState({ favorites: Object.freeze(favorites) })
+				break
+			}
+			default:
+				this.setState({ favorites: null })
+			}
+		} catch (error) {
+			this.setState({ lastError: error })
+		} finally {
+			this.setState({ isLoading: false })
 		}
 	}
 

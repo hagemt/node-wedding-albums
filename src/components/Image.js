@@ -4,7 +4,9 @@ import URL from 'url'
 import React from 'react'
 import Types from 'prop-types'
 
-import { Button, Card, CardImg, CardBlock } from 'reactstrap'
+import fetch from 'isomorphic-fetch'
+
+import { Button, ButtonGroup, Modal, ModalBody, ModalFooter } from 'reactstrap'
 
 class Image extends React.Component {
 
@@ -14,21 +16,27 @@ class Image extends React.Component {
 			countLaughs: props.countLaughs,
 			countLoves: props.countLoves,
 			isLoading: false, // === disabled
+			isModalOpen: false, // an experiment
 			lastError: null, // show message?
 			userLaughs: props.userLaughs,
 			userLoves: props.userLoves,
 		}
 	}
 
+	toggle () {
+		this.setState({
+			isModalOpen: !this.state.isModalOpen,
+		})
+	}
+
 	async toggleLaughs (url) {
 		// any re-entry is not allowed:
 		if (this.state.isLoading) return
 		try {
-			this.setState({ isLoading: true })
-			await window.fetch(url, {
-				method: this.state.userLaughs ? 'DELETE' : 'POST',
-				mode: 'cors',
-			})
+			this.setState({ isLoading: true, lastError: null })
+			const method = this.state.userLaughs ? 'DELETE' : 'POST'
+			const response = await fetch(url, { method, mode: 'cors' })
+			if (response.status !== 200) throw new Error(response.status)
 			this.setState(({ countLaughs, userLaughs }) => {
 				const updated = countLaughs + (userLaughs ? -1 : +1)
 				return { countLaughs: updated, userLaughs: !userLaughs }
@@ -36,7 +44,7 @@ class Image extends React.Component {
 		} catch (error) {
 			this.setState({ lastError: error })
 			// eslint-disable-next-line no-console
-			console.error(error)
+			console.error(error) // otherwise silent
 		} finally {
 			this.setState({ isLoading: false })
 		}
@@ -46,11 +54,10 @@ class Image extends React.Component {
 		// any re-entry is not allowed:
 		if (this.state.isLoading) return
 		try {
-			this.setState({ isLoading: true })
-			await window.fetch(url, {
-				method: this.state.userLoves ? 'DELETE' : 'POST',
-				mode: 'cors',
-			})
+			this.setState({ isLoading: true, lastError: null })
+			const method = this.state.userLoves ? 'DELETE' : 'POST'
+			const response = await fetch(url, { method, mode: 'cors' })
+			if (response.status !== 200) throw new Error(response.status)
 			this.setState(({ countLoves, userLoves }) => {
 				const updated = countLoves + (userLoves ? -1 : +1)
 				return { countLoves: updated, userLoves: !userLoves }
@@ -58,7 +65,7 @@ class Image extends React.Component {
 		} catch (error) {
 			this.setState({ lastError: error })
 			// eslint-disable-next-line no-console
-			console.error(error)
+			console.error(error) // otherwise silent
 		} finally {
 			this.setState({ isLoading: false })
 		}
@@ -80,15 +87,35 @@ class Image extends React.Component {
 		const buttonTextLaughs = `${userLaughs ? '😺' : '😹' } (${countLaughs} LOL)`
 		const buttonTextLoves = `${userLoves ? '😺' : '😻'} (${countLoves} Like)`
 		return (
-			<Card className='at-field image-card text-center'>
-				<a href={imageURL} target='_blank'>
-					<CardImg alt={padded} className='card-img-top circle' src={thumbnailURL} title={hoverText} />
-				</a>
-				<CardBlock className='btn-group'>
-					<Button disabled={isLoading} onClick={onClickLoves}>{buttonTextLoves}</Button>
-					<Button disabled={isLoading} onClick={onClickLaughs}>{buttonTextLaughs}</Button>
-				</CardBlock>
-			</Card>
+			<div className='card text-center'>
+				<Modal isOpen={this.state.isModalOpen} size='lg' toggle={() => this.toggle()}>
+					<ModalBody>
+						<a href={imageURL} target='_blank'>
+							<img alt={imageURL} height='100%' src={imageURL} width='100%' />
+						</a>
+					</ModalBody>
+					<ModalFooter>
+						<ButtonGroup>
+							<Button disabled={isLoading} onClick={onClickLoves}>{buttonTextLoves}</Button>
+							<Button disabled={isLoading} onClick={onClickLaughs}>{buttonTextLaughs}</Button>
+						</ButtonGroup>
+						<Button href={imageURL} target='_blank'>Download</Button>
+						<Button onClick={() => this.toggle()}>Close</Button>
+					</ModalFooter>
+				</Modal>
+				<img
+					alt={padded}
+					className='card-img-top img-fluid'
+					onClick={() => this.toggle()}
+					src={thumbnailURL}
+					title={hoverText} />
+				<div className='at-field text-center'>
+					<ButtonGroup>
+						<Button disabled={isLoading} onClick={onClickLoves}>{buttonTextLoves}</Button>
+						<Button disabled={isLoading} onClick={onClickLaughs}>{buttonTextLaughs}</Button>
+					</ButtonGroup>
+				</div>
+			</div>
 		)
 	}
 
