@@ -8,8 +8,8 @@ const cors = require('kcors')
 const helmet = require('koa-helmet')
 const serve = require('koa-static')
 
+const middleware = require('./middleware.js')
 const { getLogger } = require('./providers.js')
-const { createRouter } = require('./routers.js')
 
 const PROJECT_ROOT = path.resolve(__dirname, '..')
 const PUBLIC_FOLDER = path.resolve(PROJECT_ROOT, 'public')
@@ -17,24 +17,18 @@ const SERVED_FOLDER = path.resolve(PROJECT_ROOT, 'served')
 
 const createService = () => {
 	const log = getLogger().child({
-		component: 'service',
+		component: 'api',
 	})
 	const application = new Application()
-	application.use(async ({ request, response }, next) => {
-		const hrtime = process.hrtime()
-		await next() // wait for routers, etc.
-		const [s, ns] = process.hrtime(hrtime)
-		const ms = (s * 1e3 + ns / 1e6).toFixed(3)
-		log.info({ ms, req: request, res: response }, 'handled')
-	})
+	application.use(middleware.trackRequests(log))
 	application.use(cors())
 	application.use(helmet())
 	const routers = []
 	if (process.env.NODE_ENV === 'test') {
-		routers.push(createRouter('favorites'))
+		routers.push(middleware.createRouter('favorites'))
 	} else {
-		routers.push(createRouter('laughs'))
-		routers.push(createRouter('loves'))
+		routers.push(middleware.createRouter('laughs'))
+		routers.push(middleware.createRouter('loves'))
 	}
 	for (const router of routers) {
 		application.use(router.allowedMethods())
@@ -53,14 +47,10 @@ const createService = () => {
 		log.warn(error, 'internal failure')
 	})
 	server.on('request', application.callback())
-	return Object.defineProperties(server, {
-		log: {
-			value: log,
-		},
-	})
+	return Object.freeze({ log, server })
 }
 
-const startService = (server, ...args) => {
+const startService = ({ server }, ...args) => {
 	return new Promise((resolve, reject) => {
 		server.listen(...args, (listenError) => {
 			if (listenError) reject(listenError)
@@ -80,7 +70,7 @@ if (!module.parent) {
 	process.on('unhandledRejection', (reason) => {
 		service.log.warn(reason, 'unhandled rejection')
 	})
-	startService(service, port)
+	startService(service, { port })
 		.then(() => {
 			service.log.info({ port }, 'started')
 			for (const signal of ['SIGHUP', 'SIGINT', 'SIGTERM']) {

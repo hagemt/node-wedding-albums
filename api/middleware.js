@@ -1,6 +1,8 @@
 /* eslint-env es6, node */
 const KoaRouter = require('koa-router')
+
 const _ = require('lodash')
+const UUID = require('uuid')
 
 const { getStorage } = require('./providers.js')
 
@@ -32,8 +34,6 @@ const route = (object, key) => {
 }
 
 const ordering = (counts, filter) => {
-	// eslint-disable-next-line no-console
-	//if (!filter.every(number => (number in counts))) console.log('OH SHIT WTF')
 	const byCount = (lhs, rhs) => _.get(counts, rhs, 0) - _.get(counts, lhs, 0)
 	return array => filterNumbers(Array.from(array, Number), filter).sort(byCount)
 }
@@ -63,7 +63,7 @@ class ResourceRouter extends KoaRouter {
 		// ^ expose these routes for testing?
 		this.post('/', route(this, 'add'))
 		this.get('/', route(this, 'list'))
-		this.delete('/', route(this, 'subtract'))
+		this.delete('/', route(this, 'rm'))
 		Object.freeze(this)
 	}
 
@@ -87,7 +87,7 @@ class ResourceRouter extends KoaRouter {
 		}
 	}
 
-	async subtract ({ query, request, response }) {
+	async rm ({ query, request, response }) {
 		const images = csvSet(Object(query)) // ⊆ IMAGES
 		const person = String(ipPerson(request)) // IP
 		const commands = Array.from(images, image => ['srem', this.keyImage(image), person])
@@ -127,6 +127,17 @@ class ResourceRouter extends KoaRouter {
 
 }
 
+const trackRequests = log => async ({ request, response, state }, next) => {
+	const tracking = { request: UUID.v1() }
+	state.log = log.child({ tracking })
+	state.start = process.hrtime()
+	await next() // wait for routers, etc.
+	const [s, ns] = process.hrtime(state.start)
+	const ms = Number(s * 1e3 + ns / 1e6).toFixed(3)
+	response.set('X-Response-Time', `${ms} millisecond(s)`)
+	state.log.trace({ ms, req: request, res: response }, 'handled')
+}
+
 const createRouter = (resource = 'favorites') => {
 	const router = new ResourceRouter({
 		keyImage: id => `image:${id}:${resource}`,
@@ -138,4 +149,5 @@ const createRouter = (resource = 'favorites') => {
 
 module.exports = {
 	createRouter,
+	trackRequests,
 }
