@@ -6,5 +6,5 @@ function thumbnail {
 
 DIRECTORY="$(dirname $0)/2017-08-20"
 for PADDED in $(seq --format="%04g" 1 1170); do
-	echo thumbnail "$DIRECTORY/fullsize/$PADDED.jpg" "$DIRECTORY/thumbnail/$PADDED.png" 640
+	thumbnail "$DIRECTORY/fullsize/$PADDED.jpg" "$DIRECTORY/thumbnail/$PADDED.png" 300
 done
