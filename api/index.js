@@ -8,17 +8,18 @@ const cors = require('kcors')
 const helmet = require('koa-helmet')
 const serve = require('koa-static')
 
+const Logging = require('./logging.js')
 const middleware = require('./middleware.js')
-const { getLogger } = require('./providers.js')
 
 const PROJECT_ROOT = path.resolve(__dirname, '..')
 const PUBLIC_FOLDER = path.resolve(PROJECT_ROOT, 'public')
 const SERVED_FOLDER = path.resolve(PROJECT_ROOT, 'served')
 
 const createService = () => {
-	const log = getLogger().child({
-		component: 'api',
-	})
+	const log = Logging.getLogger()
+		.child({
+			component: 'api',
+		})
 	const application = new Application()
 	application.use(middleware.trackRequests(log))
 	application.use(cors())

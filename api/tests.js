@@ -1,41 +1,30 @@
 /* eslint-env es6, mocha, node */
-const Bunyan = require('bunyan')
 const test = require('supertest')
-const _ = require('lodash')
 
-const log = new Bunyan({
-	component: 'server',
-	level: 'fatal',
-	name: 'test',
-})
+const mock = require('./mocks.js')()
+const real = require('./index.js')
 
-const LOCALHOST_IPV6 = '::ffff:127.0.0.1'
+describe('API (favorites)', () => {
 
-class Data extends Map {
-	constructor () {
-		super()
-		const images = Array.from({ length: 1170 }, (none, index) => (index + 1))
-		for (const image of images) this.set(`images:${image}:favorites`, new Set())
-		this.set(`person:${LOCALHOST_IPV6}:favorites`, new Set())
-	}
-	inspect () {
-		return Array.from(this)
-	}
-}
+	const service = {}
 
-const data = new Data() // tests may manipulate this
-const mock = require('../server/providers.js')
-const MockRedis = require('ioredis-mock').default
-mock.getStorage = _.once(() => new MockRedis({ data }))
-mock.getLogger = _.once(() => log.child({ data }))
-const server = require('../server/index.js')
+	before(() => {
+		Object.assign(service, real.createService())
+		const LOCAL_IP = process.env.LOCAL_IP  || '::ffff:127.0.0.1'
+		mock.data.set(`person:${LOCAL_IP}:favorites`, new Set())
+		for (let index = 0; index < 1170; index += 1) {
+			mock.data.set(`images:${index + 1}:favorites`, new Set())
+		}
+	})
 
-describe('server', () => {
-
-	it('works', (done) => {
-		test(server.createService())
+	it('returns 200', (done) => {
+		test(service.server)
 			.get('/favorites')
 			.expect(200, done)
+	})
+
+	after(() => {
+		mock.undo()
 	})
 
 })

@@ -1,47 +1,10 @@
 /* eslint-env es6, node */
-const path = require('path')
-
-const Bunyan = require('bunyan')
 const Redis = require('ioredis')
 const _ = require('lodash')
 
+const { getLogger } = require('./logging.js')
+
 const IS_PRODUCTION = process.env.NODE_ENV === 'production'
-const LOG_LEVEL = process.env.LOG_LEVEL || 'trace'
-const LOG_NAME = process.env.LOG_NAME || 'album'
-
-const DEFAULT_LOG_ROOT = path.resolve(__dirname, '..', 'logs') // folder
-const DEFAULT_LOG_PATH = path.resolve(DEFAULT_LOG_ROOT, `${LOG_NAME}.log`)
-const LOG_PATH = process.env.LOG_PATH || DEFAULT_LOG_PATH // will rotate
-
-const getLogger = _.once(() => {
-	const logSerializers = {} // for err, req and res:
-	Object.assign(logSerializers, Bunyan.stdSerializers)
-	const logStreams = []
-	logStreams.push({
-		stream: new Bunyan.RingBuffer({
-			limit: 1024,
-		}),
-		type: 'raw',
-	})
-	logStreams.push({
-		path: LOG_PATH,
-		type: 'rotating-file',
-	})
-	logStreams.push({
-		stream: process.stdout,
-	})
-	const log = new Bunyan({
-		level: LOG_LEVEL,
-		name: LOG_NAME,
-		serializers: logSerializers,
-		streams: logStreams,
-	})
-	return Object.defineProperties(log, {
-		log: {
-			value: (...args) => log.info(...args),
-		},
-	})
-})
 
 // by default, retry after {2,4,8,16,32}s (~1m total):
 const exponentialBackoff = (limit = 5, unit = 1000) => {
@@ -55,7 +18,7 @@ const exponentialBackoff = (limit = 5, unit = 1000) => {
 	return retryStrategy
 }
 
-const getStorage = _.once(() => {
+const getClient = _.once(() => {
 	const defaultStrategy = exponentialBackoff()
 	// where all options are configured:
 	const redis = new Redis({
@@ -126,6 +89,5 @@ const getStorage = _.once(() => {
 })
 
 module.exports = {
-	getLogger,
-	getStorage,
+	getClient,
 }

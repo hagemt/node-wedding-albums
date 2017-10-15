@@ -4,7 +4,7 @@ const KoaRouter = require('koa-router')
 const _ = require('lodash')
 const UUID = require('uuid')
 
-const { getStorage } = require('./providers.js')
+const Storage = require('./storage.js')
 
 const idImage = ({ id }) => id // any String
 const ipPerson = ({ ip }) => ip || '0.0.0.0'
@@ -42,7 +42,7 @@ class ResourceRouter extends KoaRouter {
 
 	constructor ({ keyImage, keyPerson, prefix }) {
 		super({ prefix })
-		const redisStorage = getStorage() // has `ioredis` interface
+		const redisStorage = Storage.getClient() // from `ioredis`
 		Object.assign(this, { keyImage, keyPerson, redisStorage })
 		/*
 		this.get('/image/:id', async ({ params, response }, next) => {
