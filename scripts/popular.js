@@ -46,7 +46,7 @@ const fetchBoth = async ({ ALBUMS_DOMAIN = 'leah-and-tor.love' }) => {
 	const max = Array.from(scores, ([score]) => score).reduce((best, next) => Math.max(best, next), 0)
 	if (!(max > 0)) throw new Error('max score was not positive; everyone hates everything')
 	const all = Array.from(scores.get(max)).sort((left, right) => (right - left))
-	return Object.freeze(Object.defineProperty(all, 'max', { value: max }))
+	return Object.freeze(Object.assign(all, { score: max }))
 }
 
 if (!module.parent) {
@@ -54,7 +54,7 @@ if (!module.parent) {
 		.then((result) => {
 			const album = path.resolve(__dirname, '..', 'images', '2017-08-20', 'fullsize') // path to images
 			const paths = result.map(number => path.resolve(album, `${String(number).padStart(4, '0')}.jpg`))
-			console.log(`eog ${paths.join(' ')} # max: ${result.max}`) // eslint-disable-line no-console
+			console.log(`eog ${paths.join(' ')} # max: ${result.score}`) // eslint-disable-line no-console
 			Process.spawnSync('/usr/bin/eog', paths, { detached: true }) // open w/ "Eye of Gnome"
 		})
 		.catch((reason) => {
