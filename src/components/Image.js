@@ -6,7 +6,7 @@ import Types from 'prop-types'
 
 import fetch from 'isomorphic-fetch'
 
-import { Button, ButtonGroup, Modal, ModalBody, ModalFooter } from 'reactstrap'
+import { Button, ButtonGroup, Modal, ModalBody, ModalHeader, ModalFooter } from 'reactstrap'
 
 class Image extends React.Component {
 
@@ -16,14 +16,15 @@ class Image extends React.Component {
 			countLaughs: props.countLaughs,
 			countLoves: props.countLoves,
 			isLoading: false, // === disabled
-			isModalOpen: false, // an experiment
-			lastError: null, // show message?
+			isModalOpen: false, // implies useModal
+			lastError: null, // does not show message
+			useModal: true, // would A/B test
 			userLaughs: props.userLaughs,
 			userLoves: props.userLoves,
 		}
 	}
 
-	toggle () {
+	toggleModal () {
 		this.setState({
 			isModalOpen: !this.state.isModalOpen,
 		})
@@ -88,27 +89,40 @@ class Image extends React.Component {
 		const buttonTextLoves = `${userLoves ? '😺' : '😻'} (${countLoves} Like)`
 		return (
 			<div className='card text-center'>
-				<Modal isOpen={this.state.isModalOpen} size='lg' toggle={() => this.toggle()}>
-					<ModalBody>
-						<a href={imageURL} target='_blank'>
-							<img alt={imageURL} height='100%' src={imageURL} width='100%' />
+				{this.state.useModal
+					? (
+						<div>
+							<Modal isOpen={this.state.isModalOpen} size='lg' toggle={() => this.toggleModal()}>
+								<ModalHeader>
+									Click image, save to download (#{padded})
+								</ModalHeader>
+								<ModalBody>
+									<a download href={imageURL} title={hoverText} target='_blank'>
+										<img alt={padded} height='100%' src={imageURL} width='100%' />
+									</a>
+								</ModalBody>
+								<ModalFooter>
+									<ButtonGroup>
+										<Button disabled={isLoading} onClick={onClickLoves}>{buttonTextLoves}</Button>
+										<Button disabled={isLoading} onClick={onClickLaughs}>{buttonTextLaughs}</Button>
+									</ButtonGroup>
+									<Button onClick={() => this.toggleModal()}>Done</Button>
+								</ModalFooter>
+							</Modal>
+							<img
+								alt={padded}
+								className='card-img-top img-fluid'
+								onClick={() => this.toggleModal()}
+								src={thumbnailURL}
+								title={hoverText} />
+						</div>
+					)
+					: (
+						<a download href={imageURL} title={hoverText} target='_blank'>
+							<img alt={padded} className='card-img-top img-fluid' src={thumbnailURL} />
 						</a>
-					</ModalBody>
-					<ModalFooter>
-						<ButtonGroup>
-							<Button disabled={isLoading} onClick={onClickLoves}>{buttonTextLoves}</Button>
-							<Button disabled={isLoading} onClick={onClickLaughs}>{buttonTextLaughs}</Button>
-						</ButtonGroup>
-						<Button href={imageURL} target='_blank'>Download</Button>
-						<Button onClick={() => this.toggle()}>Close</Button>
-					</ModalFooter>
-				</Modal>
-				<img
-					alt={padded}
-					className='card-img-top img-fluid'
-					onClick={() => this.toggle()}
-					src={thumbnailURL}
-					title={hoverText} />
+					)
+				}
 				<div className='at-field text-center'>
 					<ButtonGroup>
 						<Button disabled={isLoading} onClick={onClickLoves}>{buttonTextLoves}</Button>
