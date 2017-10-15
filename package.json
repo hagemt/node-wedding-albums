@@ -2,7 +2,7 @@
   "name": "wedding-albums",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://hagemt.github.io/wedding-albums",
+  "homepage": "https://hagemt.github.io/node-wedding-albums",
   "dependencies": {
     "bootstrap": "4.0.0-beta",
     "bunyan": "1.8.12",
@@ -15,11 +15,13 @@
     "koa-router": "7.2.1",
     "koa-static": "4.0.1",
     "lodash": "4.17.4",
+    "popper.js": "1.12.5",
     "prop-types": "15.6.0",
     "react": "16.0.0",
     "react-dom": "16.0.0",
     "react-scripts": "1.0.14",
-    "reactstrap": "5.0.0-alpha.3"
+    "reactstrap": "5.0.0-alpha.3",
+    "uuid": "3.1.0"
   },
   "devDependencies": {
     "eslint": "4.9.0",
@@ -44,17 +46,17 @@
     "client": "react-scripts start",
     "coverage": "npm test -- --coverage",
     "deploy": "#gh-pages -d build # don't do this yet",
-    "eslint": "eslint .eslintrc.js scripts server src",
+    "eslint": "eslint .eslintrc.js api scripts src",
     "popular": "node scripts/popular.js",
     "prebuild": "npm run coverage",
     "predeploy": "npm run build",
     "preserve": "npm run build",
     "pretest": "npm run eslint",
-    "server": "node server | bunyan",
+    "server": "node api | bunyan",
     "serve": "serve -d build",
     "stylelint": "stylelint src",
     "test": "react-scripts test --env=jsdom",
-    "test:server": "nyc mocha server/tests.js",
-    "posttest:server": "npm run eslint"
+    "test:api": "nyc mocha api/tests.js",
+    "posttest:api": "npm run eslint"
   }
 }
