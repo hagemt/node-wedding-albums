@@ -25,6 +25,7 @@ const createService = () => {
 	application.use(cors())
 	application.use(helmet())
 	const routers = []
+	/* istanbul ignore else */
 	if (process.env.NODE_ENV === 'test') {
 		routers.push(middleware.createRouter('favorites'))
 	} else {
@@ -35,6 +36,7 @@ const createService = () => {
 		application.use(router.allowedMethods())
 		application.use(router.routes())
 	}
+	/* istanbul ignore next */
 	try {
 		const isDirectory = fs.statSync(SERVED_FOLDER).isDirectory()
 		if (isDirectory) application.use(serve(SERVED_FOLDER))
@@ -44,6 +46,7 @@ const createService = () => {
 		application.use(serve(PUBLIC_FOLDER))
 	}
 	const server = HTTP.createServer()
+	/* istanbul ignore next */
 	server.on('error', (error) => {
 		log.warn(error, 'internal failure')
 	})
@@ -51,6 +54,7 @@ const createService = () => {
 	return Object.freeze({ log, server })
 }
 
+/* istanbul ignore next */
 const startService = ({ server }, ...args) => {
 	return new Promise((resolve, reject) => {
 		server.listen(...args, (listenError) => {
@@ -65,6 +69,7 @@ module.exports = {
 	startService,
 }
 
+/* istanbul ignore next */
 if (!module.parent) {
 	const port = process.env.PORT || 9000
 	const service = createService() // has log
