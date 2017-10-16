@@ -5,6 +5,7 @@ import React from 'react'
 import Types from 'prop-types'
 
 import fetch from 'isomorphic-fetch'
+import _ from 'lodash'
 
 import { Button, ButtonGroup, Modal, ModalBody, ModalHeader, ModalFooter } from 'reactstrap'
 
@@ -74,7 +75,7 @@ class Image extends React.Component {
 
 	render () {
 		const { number, url } = Object(this.props)
-		const padded = String(number).padStart(4, '0')
+		const padded = _.padStart(number, 4, '0')
 		const hoverText = `Image #${padded} (${url})`
 		const imageURL = `${url}/fullsize/${padded}.jpg`
 		const thumbnailURL = `${url}/thumbnail/${padded}.png`
