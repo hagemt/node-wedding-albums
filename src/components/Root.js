@@ -79,11 +79,16 @@ const inRange = (index, items = ALBUM_ITEMS) => {
 	return !(index < 0) && (index < items)
 }
 
-// both of these are not the best way to sample/shuffle:
-const randomSampleOrder = () => (Math.random() < 0.5 ? -1 : 1)
 const randomSample = (count = ITEMS_PER_PAGE, items = ALBUM_ITEMS) => {
 	const numbers = Array.from({ length: items }, (none, index) => (index + 1))
-	return numbers.sort(randomSampleOrder).slice(-count) // first N numbers
+	// Fisher–Yates algorithm (Durstenfeld variation):
+	for (let i = numbers.length - 1; i > 0; i -= 1) {
+		const j = Math.floor(Math.random() * (i + 1))
+		const k = numbers[i]
+		numbers[i] = numbers[j]
+		numbers[j] = k
+	}
+	return numbers.slice(0, count)
 }
 
 // hack to allow ?page=N for N \in [1,65] to move the offset to a correct position
@@ -197,9 +202,8 @@ class Root extends React.Component {
 	async fetchFavorites ({ numbers }) {
 		try {
 			this.setState({ isLoading: true })
-			const id = Array.from(numbers).join(',')
-			const url1 = `${BASE_URL}/laughs?id=${id}`
-			const url2 = `${BASE_URL}/loves?id=${id}`
+			const url1 = `${BASE_URL}/laughs?id=${Array.from(numbers).join()}`
+			const url2 = `${BASE_URL}/loves?id=${Array.from(numbers).join()}`
 			const [response1, response2] = await fetchAll([url1, url2], { mode: 'cors' })
 			if (response1.status !== 200) throw new Error(`${response1.status} !== 200`)
 			if (response2.status !== 200) throw new Error(`${response2.status} !== 200`)
@@ -259,8 +263,8 @@ class Root extends React.Component {
 			case '#photo-roulette': {
 				const favorites = [] // filtered as follows:
 				this.setState({ favorites: Object.freeze([]) })
-				const all = await this.fetchFavorites({ numbers: randomSample() })
-				favorites.push(...favoritesArray(all, () => Math.random() < 0.5 ? -1 : 1))
+				const object = await this.fetchFavorites({ numbers: randomSample() })
+				favorites.push(...favoritesArray(object, () => 0)) // order already random
 				this.setState({ favorites: Object.freeze(favorites) })
 				break
 			}
