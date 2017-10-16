@@ -40,22 +40,6 @@ class ResourceRouter extends KoaRouter {
 		super({ prefix })
 		const redisStorage = Storage.getClient() // from `ioredis`
 		Object.assign(this, { keyImage, keyPerson, redisStorage })
-		/*
-		this.get('/image/:id', async ({ params, response }, next) => {
-			const image = Number(idImage(Object(params))) || 0
-			const counts = await this.getFavoriteCounts(image)
-			if (IMAGES.has(image)) response.body = counts[image]
-			await next() // else, will response 404 Not Found
-		})
-		*/
-		/*
-		this.get('/person/:ip', async ({ params, response }, next) => {
-			const person = String(ipPerson(Object(params))) // IP
-			const images = await this.getFavoriteImages(person)
-			if (person in images) response.body = images[person]
-			await next() // else, will response 404 Not Found
-		})
-		*/
 		this.delete('/', route(this, 'decrement'))
 		this.post('/', route(this, 'increment'))
 		this.get('/', route(this, 'list'))
@@ -89,34 +73,14 @@ class ResourceRouter extends KoaRouter {
 		response.body = { images: cardinality, people: favorites }
 	}
 
-	async getImages () {
-		return Array.from(IMAGES)
-	}
-
-	/*
-	async getUsers () {
-		const images = await this.getImages() // union all:
-		return this.redisStorage.sunion(images.map(this.keyImage))
-	}
-	*/
-
 	async getCardinality (...images) {
-		if (images.length === 0) {
-			const all = await this.getImages()
-			return this.getCardinality(...all)
-		}
+		if (images.length === 0) return this.getCardinality(...IMAGES)
 		const commands = images.map(image => ['scard', this.keyImage(image)])
 		const results = await exec(this.redisStorage.multi(commands))
 		return _.zipObject(images, results)
 	}
 
 	async getMembers (...people) {
-		/*
-		if (people.length === 0) {
-			const all = await this.getUsers()
-			return this.getMembers(...all)
-		}
-		*/
 		const commands = people.map(person => ['smembers', this.keyPerson(person)])
 		const results = await exec(this.redisStorage.multi(commands))
 		return _.zipObject(people, results)

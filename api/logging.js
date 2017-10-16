@@ -1,43 +1,59 @@
 /* eslint-env es6, node */
-//const Process = require('child_process')
+const child = require('child_process')
 const path = require('path')
+const stream = require('stream')
 
 const Bunyan = require('bunyan')
 const _ = require('lodash')
 
-const LOG_LEVEL = process.env.LOG_LEVEL || 'trace'
+const LOG_LEVEL = process.env.LOG_LEVEL || 'debug'
 const LOG_NAME = process.env.LOG_NAME || 'album'
 
 const DEFAULT_LOG_ROOT = path.resolve(__dirname, '..', 'logs') // folder
 const DEFAULT_LOG_PATH = path.resolve(DEFAULT_LOG_ROOT, `${LOG_NAME}.log`)
-const LOG_PATH = process.env.LOG_PATH || DEFAULT_LOG_PATH // will rotate logs
-//const LOG_PRETTY = path.resolve(__dirname, '..', 'node_modules', '.bin', 'bunyan')
+const LOG_PATH = process.env.LOG_PATH || DEFAULT_LOG_PATH // not folder
 
-const pipe = (parent = process) => {
-	/*
-	const child = Process.spawn(LOG_PRETTY)
-	process.on('exit', () => child.kill())
-	return parent.stdout.pipe(child.stdin)
-	*/
-	return parent.stdout
-}
+const LOG_BUNYAN = path.resolve(__dirname, '..', 'node_modules', '.bin', 'bunyan')
+const bunyanProcess = options => child.spawn(LOG_BUNYAN, process.execArgv, options)
+
+// FIXME: this hack adds two active handles
+// eslint-disable-next-line no-unused-vars
+const bunyanStream = _.once(() => {
+	const bunyan = bunyanProcess({
+		stdio: ['pipe', process.stdout, process.stderr],
+	})
+	// can/should use Transform instead?
+	const writer = new (stream.Writable)({
+		write: (...args) => {
+			return bunyan.stdin.write(...args)
+		},
+	})
+	process.once('beforeExit', () => {
+		// need to flush here?
+		child.kill()
+	})
+	return writer
+})
 
 const getLogger = _.once(() => {
-	const logSerializers = {} // for err, req and res:
-	Object.assign(logSerializers, Bunyan.stdSerializers)
+	// by default, 
+	const logSerializers = Object.assign({}, Bunyan.stdSerializers)
+	const logStreamInMemory = new Bunyan.RingBuffer({ limit: 1024 })
 	const logStreams = []
+	// for heap dumps:
 	logStreams.push({
-		stream: new Bunyan.RingBuffer({
-			limit: 1024,
-		}),
+		stream: logStreamInMemory,
 		type: 'raw',
 	})
+	// daily rotations:
 	logStreams.push({
+		count: 90,
 		path: LOG_PATH,
 		type: 'rotating-file',
 	})
+	// for dev TTY:
 	logStreams.push({
-		stream: pipe(),
+		stream: process.stdout,
 	})
 	return Bunyan.createLogger({
 		level: LOG_LEVEL,
