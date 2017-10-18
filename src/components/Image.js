@@ -1,13 +1,24 @@
 /* eslint-env browser */
-import URL from 'url'
-
 import React from 'react'
 import Types from 'prop-types'
 
 import fetch from 'isomorphic-fetch'
-import _ from 'lodash'
+import { padStart } from 'lodash'
 
-import { Button, ButtonGroup, Modal, ModalBody, ModalHeader, ModalFooter } from 'reactstrap'
+import {
+	Badge,
+	Button,
+	Card,
+	CardImg,
+	CardFooter,
+	InputGroup,
+	InputGroupAddon,
+	InputGroupButton,
+	Modal,
+	ModalBody,
+	ModalHeader,
+	ModalFooter,
+} from 'reactstrap'
 
 class Image extends React.Component {
 
@@ -74,49 +85,60 @@ class Image extends React.Component {
 	}
 
 	render () {
+		const isLoading = this.state.isLoading
 		const { number, url } = Object(this.props)
-		const padded = _.padStart(number, 4, '0')
+		const padded = padStart(number, 4, '0')
 		const hoverText = `Image #${padded} (${url})`
 		const imageURL = `${url}/fullsize/${padded}.jpg`
 		const thumbnailURL = `${url}/thumbnail/${padded}.png`
-		const { host, protocol } = URL.parse(url) // DELETE/POST url:
-		const laughsURL = `${protocol}//${host}/laughs?id=${number}`
-		const lovesURL = `${protocol}//${host}/loves?id=${number}`
 		// all lines above above could/should be removed from render
-		const onClickLaughs = () => this.toggleLaughs(laughsURL)
-		const onClickLoves = () => this.toggleLoves(lovesURL)
-		const { countLaughs, countLoves, isLoading, userLaughs, userLoves } = Object(this.state)
-		const buttonTextLaughs = `${userLaughs ? '😺' : '😹' } (${countLaughs} LOL)`
-		const buttonTextLoves = `${userLoves ? '😺' : '😻'} (${countLoves} Like)`
+		const onClickLaughs = () => this.toggleLaughs(`/api/v0/laughs?id=${number}`)
+		const onClickLoves = () => this.toggleLoves(`/api/v0/loves?id=${number}`)
+		const { countLaughs, countLoves, userLaughs, userLoves } = Object(this.state)
+		const [userBoth, userOne] = [userLaughs && userLoves, userLaughs || userLoves] // gold, red, green, teal:
+		const scoreFlair = userOne ? userLoves ? userBoth ? 'bg-warning' : 'bg-danger' : 'bg-success' : 'bg-info'
+		// needs to be centered:
+		const scoreInputGroup = (
+			<InputGroup size='sm'>
+				<InputGroupAddon>
+					<Badge className={scoreFlair}>&ensp;</Badge>
+				</InputGroupAddon>
+				<InputGroupButton disabled={isLoading} onClick={onClickLoves}>
+					{`${userLoves ? '😺' : '😻'} ${countLoves} LUV`}
+				</InputGroupButton>
+				<InputGroupButton disabled={isLoading} onClick={onClickLaughs}>
+					{`${userLaughs ? '😺' : '😹'} ${countLaughs} LOL`}
+				</InputGroupButton>
+				<InputGroupAddon>
+					{`Score: ${countLaughs + countLoves}`}
+				</InputGroupAddon>
+			</InputGroup>
+		)
 		return (
-			<div className='card text-center'>
+			<Card>
+				<Modal className='album-image-modal' isOpen={this.state.isModalOpen} toggle={() => this.toggleModal()}>
+					<ModalHeader>
+						Click image, save to download (#{padded})
+					</ModalHeader>
+					<ModalBody>
+						<a download href={imageURL} title={hoverText} target='_blank'>
+							<img alt={padded} height='100%' src={imageURL} width='100%' />
+						</a>
+					</ModalBody>
+					<ModalFooter>
+						{scoreInputGroup}
+						<Button onClick={() => this.toggleModal()}>Done</Button>
+					</ModalFooter>
+				</Modal>
 				{this.state.useModal
 					? (
-						<div>
-							<Modal isOpen={this.state.isModalOpen} size='lg' toggle={() => this.toggleModal()}>
-								<ModalHeader>
-									Click image, save to download (#{padded})
-								</ModalHeader>
-								<ModalBody>
-									<a download href={imageURL} title={hoverText} target='_blank'>
-										<img alt={padded} height='100%' src={imageURL} width='100%' />
-									</a>
-								</ModalBody>
-								<ModalFooter>
-									<ButtonGroup>
-										<Button disabled={isLoading} onClick={onClickLoves}>{buttonTextLoves}</Button>
-										<Button disabled={isLoading} onClick={onClickLaughs}>{buttonTextLaughs}</Button>
-									</ButtonGroup>
-									<Button onClick={() => this.toggleModal()}>Done</Button>
-								</ModalFooter>
-							</Modal>
-							<img
-								alt={padded}
-								className='card-img-top img-fluid'
-								onClick={() => this.toggleModal()}
-								src={thumbnailURL}
-								title={hoverText} />
-						</div>
+						<CardImg
+							alt={padded}
+							className='card-img-top img-fluid'
+							onClick={() => this.toggleModal()}
+							src={thumbnailURL}
+							title={hoverText}
+							top />
 					)
 					: (
 						<a download href={imageURL} title={hoverText} target='_blank'>
@@ -124,13 +146,10 @@ class Image extends React.Component {
 						</a>
 					)
 				}
-				<div className='at-field text-center'>
-					<ButtonGroup>
-						<Button disabled={isLoading} onClick={onClickLoves}>{buttonTextLoves}</Button>
-						<Button disabled={isLoading} onClick={onClickLaughs}>{buttonTextLaughs}</Button>
-					</ButtonGroup>
-				</div>
-			</div>
+				<CardFooter>
+					{scoreInputGroup}
+				</CardFooter>
+			</Card>
 		)
 	}
 

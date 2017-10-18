@@ -7,7 +7,7 @@ import Image from './Image.js'
 
 const Album = ({ favorites, title, url }) => {
 	const timeout = Object.freeze({ enter: 1000, exit: 1000 })
-	const images = Array.from(favorites, (favorite, index) => (
+	const transitions = Array.from(favorites, (favorite, index) => (
 		<CSSTransition classNames='fade' key={index} timeout={timeout}>
 			<Image
 				countLaughs={favorite.countLaughs}
@@ -18,17 +18,15 @@ const Album = ({ favorites, title, url }) => {
 				url={url} />
 		</CSSTransition>
 	))
-	const classes = ['album', 'text-center']
-	if (images.length === 0) {
-		classes.push('d-none')
-	}
+	const classes = ['album', 'at-field', 'text-center']
+	if (transitions.length === 0) classes.push('d-none')
 	return (
 		<div className={classes}>
 			<div className='album-head at-field'>
 				<h2 className='text-center'>{title}</h2>
 			</div>
 			<div className='album-body card-columns'>
-				<TransitionGroup>{images}</TransitionGroup>
+				<TransitionGroup>{transitions}</TransitionGroup>
 			</div>
 		</div>
 	)
