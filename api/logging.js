@@ -1,4 +1,4 @@
-/* eslint-env es6, node */
+/* eslint-env node */
 const child = require('child_process')
 const path = require('path')
 const stream = require('stream')

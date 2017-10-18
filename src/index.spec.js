@@ -1,4 +1,4 @@
-/* eslint-env browser, es6, mocha, node */
+/* eslint-env browser, mocha */
 import React from 'react'
 import { render } from 'react-dom'
 

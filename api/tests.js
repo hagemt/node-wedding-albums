@@ -1,4 +1,4 @@
-/* eslint-env es6, mocha, node */
+/* eslint-env mocha, node */
 const assert = require('assert')
 const test = require('supertest')
 

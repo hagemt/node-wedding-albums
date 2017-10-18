@@ -1,4 +1,4 @@
-/* eslint-env es6, node */
+/* eslint-env node */
 const OS = require('os')
 const Process = require('child_process')
 

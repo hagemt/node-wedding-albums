@@ -1,4 +1,4 @@
-/* eslint-env es6, node */
+/* eslint-env node */
 const fs = require('fs')
 const path = require('path')
 const HTTP = require('http')

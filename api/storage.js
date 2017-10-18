@@ -1,4 +1,4 @@
-/* eslint-env es6, node */
+/* eslint-env node */
 const Redis = require('ioredis')
 const _ = require('lodash')
 

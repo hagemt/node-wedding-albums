@@ -1,4 +1,4 @@
-/* eslint-env es6, node */
+/* eslint-env node */
 const assert = require('assert')
 const path = require('path')
 

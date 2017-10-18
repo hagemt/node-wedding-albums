@@ -1,4 +1,4 @@
-/* eslint-env es6, node */
+/* eslint-env node */
 process.env.NODE_ENV = 'test'
 
 const Bunyan = require('bunyan')
