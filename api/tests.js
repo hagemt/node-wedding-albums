@@ -21,7 +21,7 @@ describe('API (favorites)', () => {
 	const filterSet = (a, b) => Array.from(a).filter(e => !b.has(e))
 	const equalSets = (a, b) => hasSubSet(a, b) && hasSubSet(b, a)
 
-	const assertSetEquality = (actual, expected, label = 'valid') => {
+	const assertSetEquality = (actual, expected, label) => {
 		assert(actual instanceof Set, `"actual" is not ${label} Set`)
 		assert(expected instanceof Set, `"expected" is not ${label} Set`)
 		const diff = { left: filterSet(actual, expected), right: filterSet(expected, actual) }
@@ -57,7 +57,7 @@ describe('API (favorites)', () => {
 
 		it('returns 200', () => {
 			return test(service.server)
-				.get('/favorites?id=') // all
+				.get('/api/v0/favorites?id=') // all
 				.expect(200)
 				.then((response) => {
 					const idSet = idSetsByIP.get(LOCAL_IP)
@@ -92,7 +92,7 @@ describe('API (favorites)', () => {
 
 		it('returns 200', () => {
 			return test(service.server)
-				.post(`/favorites?id=${randomNumber}`)
+				.post(`/api/v0/favorites?id=${randomNumber}`)
 				.expect(200)
 		})
 
@@ -114,7 +114,7 @@ describe('API (favorites)', () => {
 
 		it('returns 200', () => {
 			return test(service.server)
-				.delete(`/favorites?id=${randomNumber}`)
+				.delete(`/api/v0/favorites?id=${randomNumber}`)
 				.expect(200)
 		})
 
