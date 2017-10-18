@@ -54,6 +54,7 @@
     "pretest": "npm run eslint",
     "server": "node api | bunyan",
     "serve": "serve -d build",
+    "start": "node scripts/start.js",
     "stylelint": "stylelint src",
     "test": "react-scripts test --env=jsdom",
     "test:api": "nyc mocha api/tests.js",
