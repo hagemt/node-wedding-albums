@@ -12,6 +12,7 @@
     "jquery": "3.2.1",
     "kcors": "2.2.1",
     "koa": "2.3.0",
+    "koa-compress": "2.0.0",
     "koa-cookie": "1.0.0",
     "koa-helmet": "3.2.0",
     "koa-router": "7.2.1",
@@ -54,6 +55,8 @@
     "stylelint": "stylelint src",
     "test": "react-scripts test --env=jsdom",
     "test:api": "nyc mocha api/tests.js",
+    "test:api:backup": "bash scripts/backup.bash",
+    "test:api:vegeta": "bash scripts/vegeta.bash",
     "posttest:api": "npm run eslint"
   }
 }
