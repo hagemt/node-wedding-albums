@@ -54,3 +54,10 @@ body,
 		column-count: 8;
 	}
 }
+
+@media (min-width: 768px) {
+	.album-image-modal {
+		max-width: 1200px;
+		width: 90%;
+	}
+}
