@@ -6,9 +6,8 @@ import { CSSTransition, TransitionGroup } from 'react-transition-group'
 import Image from './Image.js'
 
 const Album = ({ favorites, title, url }) => {
-	const timeout = Object.freeze({ enter: 1000, exit: 1000 })
 	const transitions = Array.from(favorites, (favorite, index) => (
-		<CSSTransition classNames='fade' key={index} timeout={timeout}>
+		<CSSTransition classNames='fade' key={index} timeout={1000}>
 			<Image
 				countLaughs={favorite.countLaughs}
 				countLoves={favorite.countLoves}

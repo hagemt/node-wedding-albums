@@ -92,8 +92,8 @@ class Image extends React.Component {
 		const imageURL = `${url}/fullsize/${padded}.jpg`
 		const thumbnailURL = `${url}/thumbnail/${padded}.png`
 		// all lines above above could/should be removed from render
-		const onClickLaughs = () => this.toggleLaughs(`/api/v0/laughs?id=${number}`)
-		const onClickLoves = () => this.toggleLoves(`/api/v0/loves?id=${number}`)
+		const onClickLaughs = () => this.toggleLaughs(`/api/v1/laughs?id=${number}`)
+		const onClickLoves = () => this.toggleLoves(`/api/v1/loves?id=${number}`)
 		const { countLaughs, countLoves, userLaughs, userLoves } = Object(this.state)
 		const [userBoth, userOne] = [userLaughs && userLoves, userLaughs || userLoves] // gold, red, green, teal:
 		const scoreFlair = userOne ? userLoves ? userBoth ? 'bg-warning' : 'bg-danger' : 'bg-success' : 'bg-info'

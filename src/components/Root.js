@@ -52,8 +52,8 @@ export default class Root extends React.Component {
 	async fetchFavorites ({ numbers }) {
 		try {
 			this.setState({ isLoading: true })
-			const url1 = `/api/v0/laughs?id=${Array.from(numbers).join()}`
-			const url2 = `/api/v0/loves?id=${Array.from(numbers).join()}`
+			const url1 = `/api/v1/laughs?id=${Array.from(numbers).join()}`
+			const url2 = `/api/v1/loves?id=${Array.from(numbers).join()}`
 			const [response1, response2] = await fetchAll([url1, url2], { mode: 'cors' })
 			if (response1.status !== 200) throw new Error(`${response1.status} !== 200`)
 			if (response2.status !== 200) throw new Error(`${response2.status} !== 200`)

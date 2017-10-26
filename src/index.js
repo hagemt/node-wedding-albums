@@ -7,6 +7,8 @@ import 'bootstrap/dist/css/bootstrap-grid.css'
 import 'bootstrap/dist/css/bootstrap-reboot.css'
 
 import './index.css'
+import './cards.css'
+import './fade.css'
 
 import Root from './components/Root.js'
 
