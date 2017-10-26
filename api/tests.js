@@ -57,7 +57,7 @@ describe('API (favorites)', () => {
 
 		it('returns 200', () => {
 			return test(service.server)
-				.get('/api/v0/favorites?id=') // all
+				.get('/api/v1/favorites?id=') // all
 				.expect(200)
 				.then((response) => {
 					const idSet = idSetsByIP.get(LOCAL_IP)
@@ -92,7 +92,7 @@ describe('API (favorites)', () => {
 
 		it('returns 200', () => {
 			return test(service.server)
-				.post(`/api/v0/favorites?id=${randomNumber}`)
+				.post(`/api/v1/favorites?id=${randomNumber}`)
 				.expect(200)
 		})
 
@@ -114,7 +114,7 @@ describe('API (favorites)', () => {
 
 		it('returns 200', () => {
 			return test(service.server)
-				.delete(`/api/v0/favorites?id=${randomNumber}`)
+				.delete(`/api/v1/favorites?id=${randomNumber}`)
 				.expect(200)
 		})
 

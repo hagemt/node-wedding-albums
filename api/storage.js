@@ -4,7 +4,9 @@ const _ = require('lodash')
 
 const { getLogger } = require('./logging.js')
 
-const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+// hack to disable more expensive diagnostics:
+const TYPE = process.env.NODE_ENV || 'development'
+const DEBUG = TYPE === 'development' || TYPE === 'test'
 
 // by default, retry after {2,4,8,16,32}s (~1m total):
 const exponentialBackoff = (limit = 5, unit = 1000) => {
@@ -28,8 +30,8 @@ const getClient = _.once(() => {
 		//reconnectOnError: error => 2,
 		// return 0/1/2 (resend commands)
 		retryStrategy: defaultStrategy,
-		showFriendlyErrorStack: !IS_PRODUCTION,
-		// showFriendlyErrorStack is expensive
+		showFriendlyErrorStack: DEBUG,
+		// ^ can be rather expensive
 	})
 	const log = getLogger()
 		.child({
@@ -53,7 +55,7 @@ const getClient = _.once(() => {
 	redis.on('reconnecting', () => {
 		log.info('connection retry')
 	})
-	if (!IS_PRODUCTION) {
+	if (DEBUG) {
 		redis.on('message', (channel, message) => {
 			log.debug({ channel }, message)
 		})

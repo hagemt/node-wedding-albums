@@ -2,13 +2,14 @@
 const cluster = require('cluster')
 const fs = require('fs')
 const http = require('http')
+const https = require('https')
 const os = require('os')
 const path = require('path')
+const tls = require('tls')
 
-const Application = require('koa')
-const koaHelmet = require('koa-helmet')
-const koaCORS = require('kcors')
+const koaCORS = require('@koa/cors')
 const koaGZIP = require('koa-compress')
+const koaHelmet = require('koa-helmet')
 const koaStatic = require('koa-static')
 
 const Logging = require('./logging.js')
@@ -18,17 +19,59 @@ const PROJECT_ROOT = path.resolve(__dirname, '..')
 const PUBLIC_FOLDER = path.resolve(PROJECT_ROOT, 'public')
 const SERVED_FOLDER = path.resolve(PROJECT_ROOT, 'served')
 
+const setupStatic = (application, log) => {
+	/* istanbul ignore next */
+	try {
+		const isDirectory = fs.statSync(SERVED_FOLDER).isDirectory()
+		if (isDirectory) application.use(koaStatic(SERVED_FOLDER))
+		else throw new Error(`not directory: ${SERVED_FOLDER}`)
+	} catch (e) {
+		log.warn(e, `will fallback to ${PUBLIC_FOLDER}`)
+		application.use(koaStatic(PUBLIC_FOLDER))
+	}
+}
+
+const setupServer = (application, log) => {
+	// if SSL=truthy, then use HTTPS (current default: HTTP)
+	// N.B. SSL support in project is currently experimental
+	// TODO: should just start with support for HTTPv2, instead?
+	const createServer = (factory, options) => {
+		const server = factory.createServer(options)
+		server.on('request', application.callback())
+		return require('http-shutdown')(server)
+	}
+	try {
+		const SSL = JSON.parse(process.env.SSL || 'false') // eventually: defualt to 'true'
+		if (!SSL) return createServer(http) // TODO: parse with querystring for advanced options?
+		const SSL_CERTIFICATES_PEM = path.resolve(PROJECT_ROOT, 'private', 'ssl-certificates.pem')
+		const SSL_PRIVATE_KEY_PEM = path.resolve(PROJECT_ROOT, 'private', 'ssl-private-key.pem')
+		let context // currently requires client supporting SNI
+		const options = {
+			SNICallback: (servername, callback) => {
+				callback(null, context)
+			},
+		}
+		const setupTLS = () => {
+			context = tls.createSecureContext({
+				cert: fs.readFileSync(SSL_CERTIFICATES_PEM),
+				key: fs.readFileSync(SSL_PRIVATE_KEY_PEM),
+			})
+		}
+		setupTLS() // to refresh every day: setInterval(setupTLS, 1000 * 60 * 60 * 24)
+		//log.info({ certificates: SSL_CERTIFICATES_PEM, key: SSL_PRIVATE_KEY_PEM }, 'SSL')
+		return createServer(https, options)
+	} catch (error) {
+		log.warn(error, `SSL=${process.env.SSL} setup failure`)
+		return createServer(http) // is this fall-back unsafe?
+	}
+}
+
 const createService = () => {
-	const log = Logging.getLogger()
-		.child({
-			component: 'api',
-		})
-	const application = new Application()
-	application.use(middleware.trackRequests(log))
-	application.use(koaCORS())
-	application.use(koaGZIP())
-	application.use(koaHelmet())
-	const routers = []
+	const application = middleware.createApplication()
+	application.use(koaCORS()) // for cross-origin requests
+	application.use(koaGZIP()) // for stream compression
+	application.use(koaHelmet()) // for security headers
+	const routers = [middleware.createRouter('status')]
 	/* istanbul ignore next */
 	switch (process.env.NODE_ENV) {
 	case 'load':
@@ -45,83 +88,84 @@ const createService = () => {
 		application.use(router.allowedMethods())
 		application.use(router.routes())
 	}
-	/* istanbul ignore next */
-	try {
-		const isDirectory = fs.statSync(SERVED_FOLDER).isDirectory()
-		if (isDirectory) application.use(koaStatic(SERVED_FOLDER))
-		else throw new Error(`!S_ISDIR(${SERVED_FOLDER})`)
-	} catch (e) {
-		log.warn(e, `will fallback to ${PUBLIC_FOLDER}`)
-		application.use(koaStatic(PUBLIC_FOLDER))
-	}
-	// TODO: use https for PWA and SW
-	const server = http.createServer()
-	/* istanbul ignore next */
-	server.on('error', (error) => {
-		log.warn(error, 'internal failure')
-	})
-	server.on('request', application.callback())
+	const log = Logging.getLogger() // parent
+		.child({
+			component: 'api',
+		})
+	setupStatic(application, log) // serve files
+	const server = setupServer(application, log)
 	return Object.freeze({ log, server })
 }
 
 /* istanbul ignore next */
-const startService = ({ server }, ...args) => {
+const startService = ({ log, server }, { backlog, hostname, port }) => {
 	return new Promise((resolve, reject) => {
-		server.listen(...args, (listenError) => {
-			if (listenError) reject(listenError)
-			else resolve(server)
+		server.on('error', (error) => {
+			if (!server.listening) reject(error)
+			else log.warn(error, 'internal failure')
 		})
+		server.once('listening', () => {
+			const url = `${hostname || 'localhost'}:${port}`
+			log.info({ url }, 'listening')
+			resolve(server)
+		})
+		server.listen(port, hostname, backlog)
+	})
+}
+
+const stopService = ({ server }, { timeout }) => {
+	return new Promise((resolve, reject) => {
+		server.shutdown(resolve) // as graceful as possible
+		const message = `failed to stop within ${timeout}ms`
+		setTimeout(reject, timeout, new Error(message))
 	})
 }
 
 module.exports = {
 	createService,
 	startService,
+	stopService,
 }
 
 /* istanbul ignore next */
 if (!module.parent) {
 	const bind = process.env.BIND || null
 	const port = process.env.PORT || 9000
-	const service = createService() // has log
-	const fatal = ['SIGHUP', 'SIGINT', 'SIGTERM']
-	process.on('unhandledRejection', (reason) => {
-		service.log.warn(reason, 'unhandled rejection')
-	})
-	const startOne = () => startService(service, { host: bind, port })
-		.then(() => {
-			service.log.info({ address: bind || 'any', port }, 'started')
-		})
-		.catch((error) => {
-			service.log.fatal(error, 'failed to start')
-			process.exit(1)
-		})
-	const startAll = () => {
-		if (!cluster.isMaster) {
-			startOne() // then, how to terminate gracefully?
-		} else {
-			// NPROC workers each start service (server) once
-			const nproc = process.env.NPROC || os.cpus().length
-			for (let i = 0; i < nproc; i += 1) cluster.fork()
-		}
+	const startWorker = () => {
+		const service = createService()
+		return startService(service, { host: bind, port })
+			.then(() => {
+				process.on('unhandledRejection', (reason) => {
+					service.log.warn(reason, 'unhandled rejection')
+				})
+				for (const signal of ['SIGHUP', 'SIGINT', 'SIGTERM']) {
+					const die = () => process.kill(process.pid, signal)
+					process.once(signal, () => {
+						service.log.warn({ signal }, 'will terminate after 1s')
+						stopService(service, { timeout: 1000 }).then(die, die)
+					})
+				}
+			})
+			.catch((error) => {
+				service.log.fatal(error, 'failed to start')
+				process.exit(1)
+			})
 	}
 	/* istanbul ignore next */
 	switch (process.env.NODE_ENV) {
 	case 'load':
 	case 'production':
-		startAll()
+		if (!cluster.isMaster) {
+			startWorker() // TODO: listen for IPC messages?
+		} else {
+			// NPROC workers each start service (server) once
+			const nproc = process.env.NPROC || os.cpus().length
+			for (let i = 0; i < nproc; i += 1) cluster.fork()
+		}
 		break
 	case 'development':
 	case 'test':
 	default:
-		startOne()
-			.then(() => {
-				for (const signal of fatal) {
-					process.once(signal, () => {
-						service.log.warn({ signal }, 'will terminate')
-						process.kill(process.pid, signal)
-					})
-				}
-			})
+		startWorker()
 	}
 }
