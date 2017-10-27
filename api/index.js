@@ -116,7 +116,7 @@ const startService = ({ log, server }, { backlog, hostname, port }) => {
 const stopService = ({ server }, { timeout }) => {
 	return new Promise((resolve, reject) => {
 		server.shutdown(resolve) // as graceful as possible
-		const message = `failed to stop within ${timeout}ms`
+		const message = `shutdown hit ${timeout}ms timeout`
 		setTimeout(reject, timeout, new Error(message))
 	})
 }
@@ -133,7 +133,7 @@ if (!module.parent) {
 	const port = process.env.PORT || 9000
 	const startWorker = () => {
 		const service = createService()
-		return startService(service, { host: bind, port })
+		return startService(service, { hostname: bind, port })
 			.then(() => {
 				process.on('unhandledRejection', (reason) => {
 					service.log.warn(reason, 'unhandled rejection')
@@ -141,8 +141,8 @@ if (!module.parent) {
 				for (const signal of ['SIGHUP', 'SIGINT', 'SIGTERM']) {
 					const die = () => process.kill(process.pid, signal)
 					process.once(signal, () => {
-						service.log.warn({ signal }, 'will terminate after 1s')
-						stopService(service, { timeout: 1000 }).then(die, die)
+						service.log.warn({ signal }, 'will terminate after 2s')
+						stopService(service, { timeout: 2000 }).then(die, die)
 					})
 				}
 			})
