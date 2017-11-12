@@ -55,11 +55,18 @@ const getLogger = _.once(() => {
 	logStreams.push({
 		stream: process.stdout,
 	})
-	return Bunyan.createLogger({
+	const rootLogger = Bunyan.createLogger({
 		level: LOG_LEVEL,
 		name: LOG_NAME,
 		serializers: logSerializers,
 		streams: logStreams,
+	})
+	rootLogger.on('error', (error) => {
+		// eslint-disable-next-line no-console
+		console.error(error, 'from root logger')
+	})
+	return rootLogger.child({
+		component: 'api',
 	})
 })
 
