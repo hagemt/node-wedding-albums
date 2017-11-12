@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "homepage": "http://leah-and-tor.love/wedding-albums",
-  "proxy": "http://localhost:9000",
+  "proxy": "http://localhost:8080",
   "dependencies": {
     "@koa/cors": "2.2.1",
     "bootstrap": "4.0.0-beta.2",
