@@ -48,7 +48,4 @@ The static file server expects a symlink to /images in /served.
 
 figure out where to put error boundaries
 figure out how to use the service worker
-figure out how to center the damn buttons
-figure out how to make the buttons stateful
-figure out which emoji are best to use, where
-figure out why photo roulette (random) is broken
+figure out stateful buttons indications
