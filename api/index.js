@@ -6,6 +6,7 @@ const https = require('https')
 const os = require('os')
 const path = require('path')
 const tls = require('tls')
+const url = require('url')
 
 const koaCORS = require('@koa/cors')
 const koaGZIP = require('koa-compress')
@@ -43,8 +44,9 @@ const setupServer = (application, log) => {
 	try {
 		const SSL = JSON.parse(process.env.SSL || 'false') // eventually: defualt to 'true'
 		if (!SSL) return createServer(http) // TODO: parse with querystring for advanced options?
-		const SSL_CERTIFICATES_PEM = path.resolve(PROJECT_ROOT, 'private', 'ssl-certificates.pem')
-		const SSL_PRIVATE_KEY_PEM = path.resolve(PROJECT_ROOT, 'private', 'ssl-private-key.pem')
+		const PRIVATE_FOLDER = path.resolve(PROJECT_ROOT, 'private') // "advanced" options:
+		const SSL_CERTIFICATES_PEM = path.resolve(PRIVATE_FOLDER, 'ssl-certificates.pem')
+		const SSL_PRIVATE_KEY_PEM = path.resolve(PRIVATE_FOLDER, 'ssl-private-key.pem')
 		let context // currently requires client supporting SNI
 		const options = {
 			SNICallback: (servername, callback) => {
@@ -100,16 +102,23 @@ const createService = () => {
 /* istanbul ignore next */
 const startService = ({ log, server }, { backlog, hostname, port }) => {
 	return new Promise((resolve, reject) => {
+		const isHTTP = (server instanceof http.Server)
+		const portNumber = Number(port) || isHTTP ? 80 : 443
+		const statusURL = url.format({
+			hostname: hostname || os.hostname(),
+			pathname: '/api/v1/status', // try GET
+			port: Number(port), // or, default to:
+			protocol: isHTTP ? 'http:' : 'https:',
+		})
 		server.on('error', (error) => {
 			if (!server.listening) reject(error)
-			else log.warn(error, 'internal failure')
+			else log.warn({ err: error }, 'server')
 		})
 		server.once('listening', () => {
-			const url = `${hostname || 'localhost'}:${port}`
-			log.info({ url }, 'listening')
+			log.info({ backlog, url: statusURL }, 'listening')
 			resolve(server)
 		})
-		server.listen(port, hostname, backlog)
+		server.listen(portNumber, hostname, backlog)
 	})
 }
 
@@ -129,11 +138,13 @@ module.exports = {
 
 /* istanbul ignore next */
 if (!module.parent) {
-	const bind = process.env.BIND || null
-	const port = process.env.PORT || 9000
+	const clamp = (any, min, max) => Math.min(Math.max(any, min), max)
+	const port = clamp(process.env.PORT || 8080, 0, 65535) // 0 = any
+	const hostname = process.env.BIND || null // null hostname = any
+	const backlog = clamp(process.env.BACKLOG || 511, 0, 511)
 	const startWorker = () => {
 		const service = createService()
-		return startService(service, { hostname: bind, port })
+		return startService(service, { backlog, hostname, port })
 			.then(() => {
 				process.on('unhandledRejection', (reason) => {
 					service.log.warn(reason, 'unhandled rejection')
