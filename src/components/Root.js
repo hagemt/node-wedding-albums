@@ -22,12 +22,13 @@ const START_QUERY = Number(querystring.decode(window.location.search)['?page']) 
 const START_PAGE = C.inRange(START_QUERY, C.ALBUM_ITEMS / C.ITEMS_PER_PAGE + 1) ? START_QUERY : 1
 if (START_QUERY) window.history.pushState(null, null, C.PUBLIC_URL) // no query in window.location
 
-const delayMS = (millis = 0) => new Promise(resolve => setTimeout(resolve, millis))
+const delayMS = (ms = 0) => new Promise(resolve => setTimeout(resolve, ms)) // hack
 const fetchAll = (all, options) => Promise.all(all.map(one => fetch(one, options)))
 
 export default class Root extends React.Component {
 
 	constructor (...args) {
+		// TODO: turn some constants into props for functional purity
 		super(...args) // Root takes no props, but may have children
 		const INITIAL_OFFSET = C.ITEMS_PER_PAGE * (START_PAGE - 1)
 		const album = Object.freeze({
@@ -40,7 +41,7 @@ export default class Root extends React.Component {
 			albums: Immutable.Map.of(null, album),
 			favorites: null, // only for site/user
 			isLoading: false, // disables buttons
-			lastError: null, // logged to console
+			lastError: null, // for error report
 		}
 	}
 
@@ -51,18 +52,18 @@ export default class Root extends React.Component {
 
 	async fetchFavorites ({ numbers }) {
 		try {
-			this.setState({ isLoading: true })
+			this.setState({ isLoading: true, lastError: null })
 			const url1 = `/api/v1/laughs?id=${Array.from(numbers).join()}`
 			const url2 = `/api/v1/loves?id=${Array.from(numbers).join()}`
-			const [response1, response2] = await fetchAll([url1, url2], { mode: 'cors' })
-			if (response1.status !== 200) throw new Error(`${response1.status} !== 200`)
-			if (response2.status !== 200) throw new Error(`${response2.status} !== 200`)
-			return { laughs: await response1.json(), loves: await response2.json() }
+			const [response1, response2] = await fetchAll([url1, url2])
+			if (response1.status !== 200) throw C.statusError(response1)
+			if (response2.status !== 200) throw C.statusError(response2)
+			return {
+				laughs: await response1.json(),
+				loves: await response2.json(),
+			}
 		} catch (error) {
 			this.setState({ lastError: error })
-			// eslint-disable-next-line no-console
-			console.error(error)
-			throw error
 		} finally {
 			this.setState({ isLoading: false })
 		}
@@ -89,8 +90,8 @@ export default class Root extends React.Component {
 			case '#only-favorites': {
 				const favorites = [] // filtered as follows:
 				this.setState({ favorites: Object.freeze([]) })
-				const object = await this.fetchFavorites({ numbers: [] }) // all
-				for (const favorite of C.favoritesArray(object, C.BY_LOVES_LAUGHS)) {
+				const all = await this.fetchFavorites({ numbers: [] }) // Object
+				for (const favorite of C.favoritesArray(all, C.BY_LOVES_LAUGHS)) {
 					const { userLaughs, userLoves } = favorite // both Booleans
 					if (userLaughs || userLoves) favorites.push(favorite)
 				}
@@ -100,8 +101,9 @@ export default class Root extends React.Component {
 			case '#only-popular': {
 				const favorites = [] // filtered as follows:
 				this.setState({ favorites: Object.freeze([]) })
-				const object = await this.fetchFavorites({ numbers: [] }) // all
-				for (const favorite of C.favoritesArray(object, C.BY_LOVES_LAUGHS)) {
+				const all = await this.fetchFavorites({ numbers: [] })
+				const popular = C.favoritesArray(all, C.BY_LOVES_LAUGHS)
+				for (const favorite of popular.slice(0, C.ITEMS_PER_PAGE)) {
 					const { countLaughs, countLoves } = favorite // both Numbers
 					if (countLaughs > 0 || countLoves > 0) favorites.push(favorite)
 				}
@@ -113,7 +115,8 @@ export default class Root extends React.Component {
 				this.setState({ favorites: Object.freeze([]) })
 				const sample = C.randomizedSample() // default: single page
 				const object = await this.fetchFavorites({ numbers: sample })
-				favorites.push(...C.randomizeArray(C.favoritesArray(object)))
+				const random = C.randomizedArray(C.favoritesArray(object))
+				for (const favorite of random) favorites.push(favorite)
 				this.setState({ favorites: Object.freeze(favorites) })
 				break
 			}
@@ -124,6 +127,15 @@ export default class Root extends React.Component {
 			this.setState({ lastError: error })
 		} finally {
 			this.setState({ isLoading: false })
+		}
+	}
+
+	debug () {
+		const lastError = this.state.lastError
+		if (lastError) {
+			window.alert(`Send this (error report) to ${C.SITE_ADMIN}:\n${C.encodeError(lastError)}`)
+		} else if (!window.confirm('Error not caught; report again after reproducing the problem.')) {
+			window.alert(`Sorry; please report the problem directly to ${C.SITE_ADMIN}.`)
 		}
 	}
 
@@ -155,7 +167,7 @@ export default class Root extends React.Component {
 		}
 		return (
 			<div className='root text-center'>
-				<Navigation className='root-header' refresh={() => this.switchView()}>
+				<Navigation refresh={() => this.switchView()}>
 					<ButtonGroup className='at-field'>{buttons}</ButtonGroup>
 				</Navigation>
 				{this.state.favorites
@@ -164,7 +176,8 @@ export default class Root extends React.Component {
 						: (<Album favorites={this.state.favorites} title={C.ALBUM_TITLE} url={C.ALBUM_URL} />)
 					: (<Album favorites={favorites} title={C.ALBUM_TITLE} url={C.ALBUM_URL} />)
 				}
-				<div className='at-field root-footer text-center'>
+				<Button onClick={() => this.debug()}>Report Bug</Button>
+				<div className='at-field text-center'>
 					<span className='d-block'>Photos by <a href='http://icantakeyourpicture.com'>Mitchell Joyce</a></span>
 					<span className='d-block'>Website by <a href='https://github.com/hagemt'>Tor E Hagemann</a></span>
 					<span className='d-block'>&copy; Copyright 2017, respective parties</span>

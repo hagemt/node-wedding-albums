@@ -1,9 +1,8 @@
 /* eslint-env browser */
+/* eslint-disable no-console */
 import fetch from 'isomorphic-fetch'
 
 import { NODE_ENV, PUBLIC_URL } from './constants.js'
-
-/* eslint-disable no-console */
 
 const installSW = swURL => navigator.serviceWorker.register(swURL)
 	.then((registration) => {
@@ -39,14 +38,15 @@ const validateSW = swURL => fetch(swURL)
 		console.log('No internet connection found; running in offline mode.')
 	})
 
-/* eslint-enable no-console */
-
-//const IPv4 = /^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/ // this is gross
-export const IS_LOCALHOST = new Set('localhost', '[::1]').has(window.location.hostname)
+const LOCAL_HOST = new Set(['localhost', '[::1]']) // or, 127.0.0.1, etc.
+const LOCAL_IPV4 = /^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/
+const isLocal = hostname => LOCAL_HOST.has(hostname) || LOCAL_IPV4.test(hostname)
+export const IS_LOCALHOST = isLocal(window.location.hostname)
+export const IS_DISABLED = NODE_ENV !== 'production'
 
 export const enable = () => {
 	if ('serviceWorker' in navigator) {
-		if (NODE_ENV !== 'production') return
+		if (IS_DISABLED) return
 		const locationURL = new URL(PUBLIC_URL, window.location)
 		if (locationURL.origin !== window.location.origin) return
 		window.addEventListener('load', () => {
@@ -59,9 +59,7 @@ export const enable = () => {
 
 export const disable = () => {
 	if ('serviceWorker' in navigator) {
-		navigator.serviceWorker.ready.then(registration => {
-			registration.unregister()
-		})
+		navigator.serviceWorker.ready.then(registration => registration.unregister())
 	}
 }
 

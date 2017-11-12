@@ -1,3 +1,4 @@
+/* eslint-env browser */
 // eslint-disable-next-line no-undef
 export const { LOCAL_IP, NODE_ENV, PUBLIC_URL } = process.env
 
@@ -5,6 +6,11 @@ export const ITEMS_PER_PAGE = 65 // small product of factors:
 export const ALBUM_ITEMS = 1170 // factors of 1170: 2 3 3 5 13
 export const ALBUM_TITLE = '2017-08-20' // === album directory:
 export const ALBUM_URL = `/images/${ALBUM_TITLE}` // relative
+export const SITE_ADMIN = 'Tor (or Leah) via Facebook or email'
+
+export const encodeError = (lastError) => {
+	return window.btoa(`last Error: ${lastError.message}\n${lastError.stack}`)
+}
 
 export const inRange = (index, items = ALBUM_ITEMS) => {
 	return !(index < 0) && (index < items)
@@ -42,22 +48,25 @@ export const favoritesArray = ({ laughs, loves }, order = () => 0) => {
 	return Object.freeze(values.sort(order)) // default order based on API responses
 }
 
+export const statusError = response => new Error(`${response.statusText} (${response.url})`)
+
 // N.B. this method is both incorrect (not random) and inefficient:
 // return array.slice().sort(() => Math.random() < 0.5 ? -1 : 1)
-export const randomizeArray = (array) => {
+export const randomizedArray = (array) => {
+	const copy = array.slice()
 	const swap = (i, j) => {
-		const temp = array[i]
-		array[i] = array[j]
-		array[j] = temp
+		const temp = copy[i]
+		copy[i] = copy[j]
+		copy[j] = temp
 	}
 	// Fisher–Yates algorithm (Durstenfeld variation):
-	for (let i = array.length - 1; i > 0; i -= 1) {
+	for (let i = copy.length - 1; i > 0; i -= 1) {
 		swap(i, Math.floor(Math.random() * (i + 1)))
 	}
-	return array
+	return copy
 }
 
 export const randomizedSample = (count = ITEMS_PER_PAGE, items = ALBUM_ITEMS) => {
-	const numbers = Array.from({ length: items }, (none, index) => (index + 1))
-	return randomizeArray(numbers).slice(0, count) // default size: ITEMS_PER_PAGE
+	const all = Array.from({ length: items }, (none, index) => (index + 1))
+	return randomizedArray(all).slice(0, count) // simple, could be faster
 }

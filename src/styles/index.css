@@ -4,6 +4,10 @@ body,
 	padding: 1rem;
 }
 
+.input-group {
+	justify-content: center;
+}
+
 @media (min-width: 768px) {
 	.album-image-modal {
 		max-width: 1280px;

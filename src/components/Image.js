@@ -5,6 +5,8 @@ import Types from 'prop-types'
 import fetch from 'isomorphic-fetch'
 import { padStart } from 'lodash'
 
+import * as C from '../constants.js'
+
 import {
 	Badge,
 	Button,
@@ -36,6 +38,10 @@ class Image extends React.Component {
 		}
 	}
 
+	alertError () {
+		window.alert(`Send this (error report) to ${C.SITE_ADMIN}:\n${C.encodeError(this.state.lastError)}`)
+	}
+
 	toggleModal () {
 		this.setState({
 			isModalOpen: !this.state.isModalOpen,
@@ -43,29 +49,23 @@ class Image extends React.Component {
 	}
 
 	async toggleLaughs (url) {
-		// any re-entry is not allowed:
-		if (this.state.isLoading) return
 		try {
 			this.setState({ isLoading: true, lastError: null })
 			const method = this.state.userLaughs ? 'DELETE' : 'POST'
 			const response = await fetch(url, { method, mode: 'cors' })
-			if (response.status !== 200) throw new Error(response.status)
+			if (response.status !== 200) throw C.statusError(response)
 			this.setState(({ countLaughs, userLaughs }) => {
 				const updated = countLaughs + (userLaughs ? -1 : +1)
 				return { countLaughs: updated, userLaughs: !userLaughs }
 			})
 		} catch (error) {
 			this.setState({ lastError: error })
-			// eslint-disable-next-line no-console
-			console.error(error) // otherwise silent
 		} finally {
 			this.setState({ isLoading: false })
 		}
 	}
 
 	async toggleLoves (url) {
-		// any re-entry is not allowed:
-		if (this.state.isLoading) return
 		try {
 			this.setState({ isLoading: true, lastError: null })
 			const method = this.state.userLoves ? 'DELETE' : 'POST'
@@ -77,8 +77,6 @@ class Image extends React.Component {
 			})
 		} catch (error) {
 			this.setState({ lastError: error })
-			// eslint-disable-next-line no-console
-			console.error(error) // otherwise silent
 		} finally {
 			this.setState({ isLoading: false })
 		}
@@ -104,10 +102,10 @@ class Image extends React.Component {
 					<Badge className={scoreFlair}>&ensp;</Badge>
 				</InputGroupAddon>
 				<InputGroupButton disabled={isLoading} onClick={onClickLoves}>
-					{`${userLoves ? '😺' : '😻'} ${countLoves} LUV`}
+					{`${userLoves ? '😻' : '😺'} ${countLoves} LUV`}
 				</InputGroupButton>
 				<InputGroupButton disabled={isLoading} onClick={onClickLaughs}>
-					{`${userLaughs ? '😺' : '😹'} ${countLaughs} LOL`}
+					{`${userLaughs ? '😹' : '😺'} ${countLaughs} LOL`}
 				</InputGroupButton>
 				<InputGroupAddon>
 					{`Score: ${countLaughs + countLoves}`}
@@ -127,7 +125,10 @@ class Image extends React.Component {
 					</ModalBody>
 					<ModalFooter>
 						{scoreInputGroup}
-						<Button onClick={() => this.toggleModal()}>Done</Button>
+						{this.state.lastError
+							? (<Button onClick={() => this.alertError()}>Report Error</Button>)
+							: (<Button onClick={() => this.toggleModal()}>Album View</Button>)
+						}
 					</ModalFooter>
 				</Modal>
 				{this.state.useModal
