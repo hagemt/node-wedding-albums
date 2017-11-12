@@ -11,7 +11,7 @@ if (!module.parent) {
 	const clamp = (any, min, max) => Math.min(Math.max(any, min), max)
 	const port = clamp(process.env.PORT || 8080, 0, 65535) // 0 = any
 	const hostname = process.env.BIND || null // null hostname = any
-	const backlog = clamp(process.env.BACKLOG || 511, 0, 511)
+	const backlog = clamp(process.env.BACKLOG || 511, 0, Infinity)
 	const startService = () => {
 		const service = Services.createService() // started immediately:
 		return Services.startService(service, { backlog, hostname, port })

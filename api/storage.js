@@ -22,11 +22,12 @@ const exponentialBackoff = (limit = 5, unit = 1000) => {
 
 const getClient = _.once(() => {
 	const defaultStrategy = exponentialBackoff()
-	// where all options are configured:
+	// https://github.com/luin/ioredis/blob/master/API.md
 	const redis = new Redis({
 		enableReadyCheck: true,
 		//enableOfflineQueue: false,
 		keyPrefix: 'wedding:albums:',
+		path: '/var/run/redis/unix.socket',
 		//reconnectOnError: error => 2,
 		// return 0/1/2 (resend commands)
 		retryStrategy: defaultStrategy,
@@ -73,14 +74,10 @@ const getClient = _.once(() => {
 				else {
 					const error = new Error('no connection ready within timeout')
 					const timeout = setTimeout(reject, defaultStrategy.max, error)
-					const readyListener = () => {
+					redis.once('ready', () => {
 						clearTimeout(timeout)
 						resolve(redis)
-					}
-					redis.once('error', () => {
-						redis.removeListener('ready', readyListener)
 					})
-					redis.once('ready', readyListener)
 				}
 			}),
 		},

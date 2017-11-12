@@ -25,9 +25,9 @@ const setupStatic = (application, log) => {
 		const isDirectory = fs.statSync(SERVED_FOLDER).isDirectory()
 		if (isDirectory) application.use(koaStatic(SERVED_FOLDER))
 		else throw new Error(`not directory: ${SERVED_FOLDER}`)
-	} catch (e) {
-		log.warn(e, `will fallback to ${PUBLIC_FOLDER}`)
-		application.use(koaStatic(PUBLIC_FOLDER))
+	} catch (error) {
+		log.warn({ err: error }, `will fallback to ${PUBLIC_FOLDER}`)
+		application.use(koaStatic(PUBLIC_FOLDER, { defer: true }))
 	}
 }
 
@@ -46,20 +46,25 @@ const setupServer = (application, log) => {
 		const PRIVATE_FOLDER = path.resolve(PROJECT_ROOT, 'private') // "advanced" options:
 		const SSL_CERTIFICATES_PEM = path.resolve(PRIVATE_FOLDER, 'ssl-certificates.pem')
 		const SSL_PRIVATE_KEY_PEM = path.resolve(PRIVATE_FOLDER, 'ssl-private-key.pem')
-		let context // currently requires client supporting SNI
+		let context // currently requires client supporting SNI:
 		const options = {
 			SNICallback: (servername, callback) => {
 				callback(null, context)
 			},
 		}
 		const setupTLS = () => {
+			const paths = {
+				certificates: SSL_CERTIFICATES_PEM,
+				key: SSL_PRIVATE_KEY_PEM,
+			}
 			context = tls.createSecureContext({
-				cert: fs.readFileSync(SSL_CERTIFICATES_PEM),
-				key: fs.readFileSync(SSL_PRIVATE_KEY_PEM),
+				cert: fs.readFileSync(paths.certificates),
+				key: fs.readFileSync(paths.key),
 			})
+			log.info({ paths }, 'new SSL context')
 		}
-		setupTLS() // to refresh every day: setInterval(setupTLS, 1000 * 60 * 60 * 24)
-		//log.info({ certificates: SSL_CERTIFICATES_PEM, key: SSL_PRIVATE_KEY_PEM }, 'SSL')
+		setupTLS() // to refresh certificates daily:
+		//setInterval(setupTLS, 1000 * 60 * 60 * 24)
 		return createServer(https, options)
 	} catch (error) {
 		log.warn(error, `SSL=${process.env.SSL} setup failure`)
@@ -91,7 +96,7 @@ const createService = () => {
 	}
 	const log = Logging.getLogger() // parent
 		.child({
-			component: 'api',
+			component: 'service',
 		})
 	setupStatic(application, log) // serve files
 	const server = setupServer(application, log)
@@ -100,9 +105,10 @@ const createService = () => {
 
 /* istanbul ignore next */
 const startService = ({ log, server }, { backlog, hostname, port }) => {
+	// https://nodejs.org/api/net.html#net_server_listen_port_host_backlog_callback
 	return new Promise((resolve, reject) => {
-		const isHTTP = (server instanceof http.Server)
-		const portNumber = Number(port) || isHTTP ? 80 : 443
+		const isHTTP = (server instanceof http.Server) // hack
+		const portNumber = Number(port) || (isHTTP ? 80 : 443)
 		const statusURL = url.format({
 			hostname: hostname || os.hostname(),
 			pathname: '/api/v1/status', // try GET
@@ -114,7 +120,7 @@ const startService = ({ log, server }, { backlog, hostname, port }) => {
 			else log.warn({ err: error }, 'server')
 		})
 		server.once('listening', () => {
-			log.info({ backlog, url: statusURL }, 'listening')
+			log.info({ url: statusURL }, 'listening')
 			resolve(server)
 		})
 		server.listen(portNumber, hostname, backlog)
