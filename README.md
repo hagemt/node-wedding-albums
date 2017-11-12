@@ -1,5 +1,7 @@
 # wedding-albums
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/hagemt/node-wedding-albums.svg)](https://greenkeeper.io/)
+
 Favorites-enabled (single) photo album system using `react`, `redis`, and not much else.
 
 React application is in `src`, separate from `api` (server code) and `scripts`, etc.
