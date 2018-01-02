@@ -2,7 +2,6 @@
 const fs = require('fs')
 const http = require('http')
 const https = require('https')
-const os = require('os')
 const path = require('path')
 const tls = require('tls')
 const url = require('url')
@@ -110,7 +109,7 @@ const startService = ({ log, server }, { backlog, hostname, port }) => {
 		const isHTTP = (server instanceof http.Server) // hack
 		const portNumber = Number(port) || (isHTTP ? 80 : 443)
 		const statusURL = url.format({
-			hostname: hostname || os.hostname(),
+			hostname: hostname || 'localhost',
 			pathname: '/api/v1/status', // try GET
 			port: Number(port), // or, default to:
 			protocol: isHTTP ? 'http:' : 'https:',

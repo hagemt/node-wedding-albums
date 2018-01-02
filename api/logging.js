@@ -45,11 +45,10 @@ const getLogger = _.once(() => {
 		stream: logStreamInMemory,
 		type: 'raw',
 	})
-	// daily rotations:
+	// no rotation:
 	logStreams.push({
-		count: 90,
 		path: LOG_PATH,
-		type: 'rotating-file',
+		type: 'file',
 	})
 	// for dev TTY:
 	logStreams.push({
