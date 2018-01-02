@@ -12,6 +12,7 @@ if (!module.parent) {
 	const port = clamp(process.env.PORT || 8080, 0, 65535) // 0 = any
 	const hostname = process.env.BIND || null // null hostname = any
 	const backlog = clamp(process.env.BACKLOG || 511, 0, Infinity)
+	const timeout = clamp(process.env.TIMEOUT || 2000, 1000, 10000)
 	const startService = () => {
 		const service = Services.createService() // started immediately:
 		return Services.startService(service, { backlog, hostname, port })
@@ -22,8 +23,8 @@ if (!module.parent) {
 				for (const signal of ['SIGHUP', 'SIGINT', 'SIGTERM']) {
 					const die = () => process.kill(process.pid, signal)
 					process.once(signal, () => {
-						service.log.warn({ signal }, 'will terminate service after 2s')
-						Services.stopService(service, { timeout: 2000 }).then(die, die)
+						service.log.warn({ signal }, 'will terminate after 2s')
+						Services.stopService(service, { timeout }).then(die, die)
 					})
 				}
 			})
