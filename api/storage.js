@@ -7,6 +7,7 @@ const { getLogger } = require('./logging.js')
 // hack to disable more expensive diagnostics:
 const TYPE = process.env.NODE_ENV || 'development'
 const DEBUG = TYPE === 'development' || TYPE === 'test'
+const REDIS_URL = process.env.REDIS_URL || '/var/run/redis/unix.socket'
 
 // by default, retry after {2,4,8,16,32}s (~1m total):
 const exponentialBackoff = (limit = 5, unit = 1000) => {
@@ -23,16 +24,11 @@ const exponentialBackoff = (limit = 5, unit = 1000) => {
 const getClient = _.once(() => {
 	const defaultStrategy = exponentialBackoff()
 	// https://github.com/luin/ioredis/blob/master/API.md
-	const redis = new Redis({
+	const redis = new Redis(REDIS_URL, {
 		enableReadyCheck: true,
-		//enableOfflineQueue: false,
 		keyPrefix: 'wedding:albums:',
-		path: '/var/run/redis/unix.socket',
-		//reconnectOnError: error => 2,
-		// return 0/1/2 (resend commands)
 		retryStrategy: defaultStrategy,
 		showFriendlyErrorStack: DEBUG,
-		// ^ can be rather expensive
 	})
 	const log = getLogger()
 		.child({
