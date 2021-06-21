@@ -1,20 +1,21 @@
 ---
 version: '3'
 
-# TODO: systemd + pm2 currently runs pages *2, and systemd runs redis (socket)
-# what we want is something that runs in containers instead (+/- node_modules)
 services:
 
   pages:
     command: node api
+    depends_on:
+      - redis
     environment:
+      - BIND=127.0.0.1
       - LOG_PATH=/tmp/pages.log
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379/0
     image: node:12-alpine
     init: true
     ports:
-      - 8080:8080/tcp
+      - 127.0.0.1:8080:8080/tcp
     restart: always
     user: node
     volumes:
@@ -24,7 +25,7 @@ services:
   redis:
     image: library/redis:6-alpine
     ports:
-      - 6379:6379/tcp
+      - 127.0.0.1:6379:6379/tcp
     restart: always
     volumes:
       - ./data:/data:rw
